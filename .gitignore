@@ -1,3 +1,7 @@
+node-rawbot/
+node-slack-cryptobot/
+website_development/
+
 # Logs
 logs
 *.log
