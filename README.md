@@ -1,6 +1,6 @@
 # Rawbot
 
-[![N|Solid](http://rawbot.org/img/Rawbot%20Logo-03.png)](http://rawbot.org)
+[![N|Solid](http://rawbot.org/img/rawbot_logo_colored.png)](http://rawbot.org)
 
 Rawbot is a framework, more precisely a collection of configurations/scripts/hacks with an underlying currency named RAW with the purpose of facilitating the implementation of payment gateways to activate digital services on a variety of IoT enabled devices such as Raspberry Pi, Arduino, Beagleboard, particle, drones, electric cars and more.
 
