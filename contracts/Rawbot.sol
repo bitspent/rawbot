@@ -2,12 +2,27 @@ pragma solidity ^0.4.24;
 
 import "./Owned.sol";
 import "./StandardToken.sol";
-//import "./Oraclize.sol";
+// import "./Oraclize.sol";, usingOraclize
 
 contract Rawbot is Owned, StandardToken {
-    // , usingOraclize
-    struct ExchangeAmount {
-        uint256 raw_amount;
+
+    uint256 public ETH_PRICE = 500;
+    uint256 public oraclize_fee;
+    uint256 public last_price_update;
+
+    address[] public exchange_addresses;
+    string[] public device_serial_numbers;
+    PRICE_CHECKING_STATUS public price_status;
+
+    mapping(address => mapping(string => Device)) devices;
+    mapping(address => bool) public frozenAccount;
+    mapping(address => ActionHistory[]) public actionsHistoryOf;
+
+    mapping(address => User) public historyOf;
+
+    struct User {
+        uint256 allowed_to_exchange;
+        ExchangeHistory[] history;
         bool available;
     }
 
@@ -20,9 +35,16 @@ contract Rawbot is Owned, StandardToken {
         bool available;
     }
 
-    struct PendingExchange {
-        address _address;
-        uint256 _value;
+    struct UserHistory {
+        uint256 action_id;
+        string action_name;
+        uint256 action_price;
+        uint256 action_duration;
+        string device_serial_number;
+        string device_name;
+        address user;
+        address device_address;
+        uint256 time;
     }
 
     struct Action {
@@ -39,19 +61,16 @@ contract Rawbot is Owned, StandardToken {
         string action_name;
         uint256 action_price;
         uint256 action_duration;
-        string device_serial_number;
-        string device_name;
         address user;
-        address device_address;
         uint256 time;
     }
 
     struct Device {
-        string device_serial_number;
         string device_name;
         uint256 device_balance;
         address device_owner;
-        address device_address;
+        Action[] device_actions;
+        ActionHistory[] device_history;
         bool available;
     }
 
@@ -59,35 +78,19 @@ contract Rawbot is Owned, StandardToken {
         NEEDED, PENDING, FETCHED
     }
 
-    event LogConstructorInitiated(string nextStep);
-    event LogPriceUpdated(uint256 price);
+    event OraclizeLog(string _description, uint256 _time);
     event LogNewOraclizeQuery(string description);
 
     event SendErrorMessage(string _error_message);
     event AddDevice(address _owner_address, address _device_address, string _device_serial_number, string _device_name, bool _success);
     event FrozenFunds(address target, bool frozen);
-    event ExchangeEvent(string _method, address _address, uint256 amount);
 
     event ActionAdd(string, uint, string, uint256, uint256, bool);
     event ActionEnable(string, uint, string, uint256, uint256, bool);
     event ActionDisable(string, uint, string, uint256, uint256, bool);
 
-    uint256 public ETH_PRICE = 500;
-    uint256 public oraclize_fee;
-    uint256 public last_price_update;
-    uint256 pending_exchange_index = 0;
-
-    PendingExchange[] public pending;
-    address[] public exchange_addresses;
-    string[] public device_serial_numbers;
-    PRICE_CHECKING_STATUS public price_status;
-
-    mapping(address => ActionHistory[]) public actionsHistoryOf;
-    mapping(string => Device) devices;
-    mapping(address => bool) public frozenAccount;
-    mapping(string => Action[]) actions;
-    mapping(address => ExchangeAmount) public exchangeOf;
-    mapping(address => ExchangeHistory[]) public exchangeHistoryOf;
+    event ExchangeToEther(address _address, uint256 _amount_received, uint256 _amount_to_give);
+    event ExchangeToRaw(address _address, uint256 _amount_received, uint256 _amount_to_give);
 
     constructor() StandardToken(20000000, "Rawbot Test 1", "RWT") public payable {
         price_status = PRICE_CHECKING_STATUS.NEEDED;
@@ -116,11 +119,11 @@ contract Rawbot is Owned, StandardToken {
     }
 
     function withdraw(uint value) public returns (bool success) {
-        if (exchangeOf[msg.sender].raw_amount >= 0 && exchangeOf[msg.sender].raw_amount >= value && balanceOf[msg.sender] >= value) {
+        if (historyOf[msg.sender].allowed_to_exchange >= 0 && historyOf[msg.sender].allowed_to_exchange >= value && balanceOf[msg.sender] >= value) {
             msg.sender.transfer(((value / 2) / ETH_PRICE) * 1e18);
             balanceOf[msg.sender] -= value * 10 ** 18;
-            exchangeOf[msg.sender].raw_amount -= value * 10 ** 18;
-            emit ExchangeEvent("withdraw", msg.sender, ((value / 2) / ETH_PRICE) * 1e18);
+            historyOf[msg.sender].allowed_to_exchange -= value * 10 ** 18;
+            emit ExchangeToEther(msg.sender, value, ((value / 2) / ETH_PRICE) * 1e18);
             return true;
         } else {
             return false;
@@ -128,39 +131,18 @@ contract Rawbot is Owned, StandardToken {
     }
 
     function() payable public {
-        //        AddPendingExchange(msg.sender, msg.value);
-        TestPayable();
-        //        if (price_status == PRICE_CHECKING_STATUS.NEEDED) {
-        //            price_status = PRICE_CHECKING_STATUS.PENDING;
-        //            // fetchEthereumPrice();
-        //        } else if (price_status == PRICE_CHECKING_STATUS.PENDING) {
-        //        } else if (price_status == PRICE_CHECKING_STATUS.FETCHED) {
-        //            if (now - last_price_update < 300) {
-        //                ExecuteAllExchanges();
-        //            } else {
-        //                price_status = PRICE_CHECKING_STATUS.PENDING;
-        //                // fetchEthereumPrice();
-        //            }
-        //        } else {
-        //        }
-    }
-
-    function TestPayable() payable public {
         uint256 raw_amount = msg.value * ETH_PRICE * 2;
         balanceOf[msg.sender] += raw_amount;
         transfer(msg.sender, raw_amount);
-        exchangeOf[msg.sender].raw_amount += raw_amount;
+        historyOf[msg.sender].allowed_to_exchange += raw_amount;
         addExchangeHistory(msg.sender, raw_amount, msg.value, ETH_PRICE, now);
-        emit ExchangeEvent("buy", msg.sender, raw_amount);
+        emit ExchangeToRaw(msg.sender, msg.value, raw_amount);
     }
 
-    function AddPendingExchange(address _address, uint256 _value) public {
-        pending.push(PendingExchange(_address, _value));
-    }
-
+    //"0xf1e7282908c481d2647fa1242fd411ed1d93d212", 100, 1e18, 500, 123123
     function addExchangeHistory(address _address, uint256 _raw_amount, uint256 _eth_received, uint256 _eth_price, uint256 _time_ms) public returns (bool){
-        exchangeHistoryOf[_address].push(ExchangeHistory(_raw_amount, 0, _eth_received, _eth_price, _time_ms, true));
-        if (exchangeOf[_address].available == false) {
+        historyOf[msg.sender].history.push(ExchangeHistory(_raw_amount, 0, _eth_received, _eth_price, _time_ms, true));
+        if (historyOf[_address].available == false) {
             exchange_addresses.push(_address);
         }
         return true;
@@ -168,52 +150,86 @@ contract Rawbot is Owned, StandardToken {
 
     //"0x577ccfbd7b0ee9e557029775c531552a65d9e11d", "ABC1", "Raspberry PI 3"
     function addDevice(address _address, string _device_serial_number, string _device_name) public returns (bool success) {
-        if (devices[_device_serial_number].available == false) {
-            devices[_device_serial_number] = Device(_device_serial_number, _device_name, 0, msg.sender, _address, true);
+        if (devices[_address][_device_serial_number].available == false) {
+            Device storage current_device = devices[_address][_device_serial_number];
+            current_device.device_name = _device_name;
+            current_device.device_balance = 0;
+            current_device.device_owner = msg.sender;
+            current_device.available = true;
             device_serial_numbers.push(_device_serial_number);
             emit AddDevice(msg.sender, _address, _device_serial_number, _device_name, true);
             return true;
         } else {
-            emit SendErrorMessage("Device serial number is already available.");
+            emit SendErrorMessage("Device serial number is already available on the same address.");
             return false;
         }
     }
 
-    //"ABC1", "Open", 20, 20
-    function addAction(string _device_serial_number, string _action_name, uint256 _action_price, uint256 _action_duration) public returns (bool success) {
-        if (devices[_device_serial_number].available == false) {
+    //"0x577ccfbd7b0ee9e557029775c531552a65d9e11d", "ABC1", "Open", 20, 20
+    function addAction(address _device_address, string _device_serial_number, string _action_name, uint256 _action_price, uint256 _action_duration) public returns (bool success) {
+        if (devices[_device_address][_device_serial_number].available == false) {
             emit SendErrorMessage("Device serial number is not available.");
             return false;
         } else {
-            uint256 actions_length = actions[_device_serial_number].length;
-            actions[_device_serial_number].push(Action(actions_length, _action_name, _action_price, _action_duration, false, true));
+            uint256 actions_length = devices[_device_address][_device_serial_number].device_actions.length;
+            devices[_device_address][_device_serial_number].device_actions.push(Action(actions_length, _action_name, _action_price, _action_duration, false, true));
             emit ActionAdd(_device_serial_number, actions_length, _action_name, _action_price, _action_duration, true);
             return true;
         }
     }
 
-    //"ABC1", 1
-    function enableAction(string _device_serial_number, uint256 _action_id) public payable returns (bool success) {
-        if (devices[_device_serial_number].available == false) {
+    //"0x577ccfbd7b0ee9e557029775c531552a65d9e11d", "ABC1", 1
+    function enableAction(address _device_address, string _device_serial_number, uint256 _action_id) public payable returns (bool success) {
+        if (devices[_device_address][_device_serial_number].available == false) {
             emit SendErrorMessage("Device serial number is not available.");
             return false;
         } else {
-            actions[_device_serial_number][_action_id].action_enabled = true;
-            actionsHistoryOf[msg.sender].push(ActionHistory(_action_id, actions[_device_serial_number][_action_id].action_name, actions[_device_serial_number][_action_id].action_price, actions[_device_serial_number][_action_id].action_duration, _device_serial_number, devices[_device_serial_number].device_name, msg.sender, devices[_device_serial_number].device_address, now));
-            emit ActionEnable(_device_serial_number, _action_id, actions[_device_serial_number][_action_id].action_name, actions[_device_serial_number][_action_id].action_price, actions[_device_serial_number][_action_id].action_duration, true);
+            // actions[_device_serial_number].devce[_action_id].action_enabled = true;
+            ActionHistory storage action_history;
+            action_history.action_id = _action_id;
+            action_history.action_name = devices[_device_address][_device_serial_number].device_actions[_action_id].action_name;
+            action_history.action_price = devices[_device_address][_device_serial_number].device_actions[_action_id].action_price;
+            action_history.action_duration = devices[_device_address][_device_serial_number].device_actions[_action_id].action_duration;
+            action_history.user = msg.sender;
+            action_history.time = now;
+            devices[_device_address][_device_serial_number].device_history.push(action_history);
+
+            actionsHistoryOf[msg.sender].push(action_history);
+            emit ActionEnable(
+                _device_serial_number,
+                _action_id,
+                action_history.action_name,
+                action_history.action_price,
+                action_history.action_duration,
+                true);
             return true;
         }
     }
 
-    //"ABC1", 1
-    function disableAction(string _device_serial_number, uint256 _action_id) public returns (bool success) {
-        if (devices[_device_serial_number].available == false) {
+    //"0x577ccfbd7b0ee9e557029775c531552a65d9e11d", "ABC1", 1
+    function disableAction(address _device_address, string _device_serial_number, uint256 _action_id) public returns (bool success) {
+        if (devices[_device_address][_device_serial_number].available == false) {
             emit SendErrorMessage("Device serial number is not available.");
             return false;
         } else {
-            actions[_device_serial_number][_action_id].action_enabled = false;
-            actionsHistoryOf[msg.sender].push(ActionHistory(_action_id, actions[_device_serial_number][_action_id].action_name, actions[_device_serial_number][_action_id].action_price, actions[_device_serial_number][_action_id].action_duration, _device_serial_number, devices[_device_serial_number].device_name, msg.sender, devices[_device_serial_number].device_address, now));
-            emit ActionDisable(_device_serial_number, _action_id, actions[_device_serial_number][_action_id].action_name, actions[_device_serial_number][_action_id].action_price, actions[_device_serial_number][_action_id].action_duration, true);
+            ActionHistory storage action_history;
+            action_history.action_id = _action_id;
+            action_history.action_name = devices[_device_address][_device_serial_number].device_actions[_action_id].action_name;
+            action_history.action_price = devices[_device_address][_device_serial_number].device_actions[_action_id].action_price;
+            action_history.action_duration = devices[_device_address][_device_serial_number].device_actions[_action_id].action_duration;
+            action_history.user = msg.sender;
+            action_history.time = now;
+            devices[_device_address][_device_serial_number].device_history.push(action_history);
+
+            // devices[_device_address][_device_serial_number].device_actions[_action_id].action_enabled = false;
+            // actionsHistoryOf[msg.sender].push(ActionHistory(_action_id, actions[_device_serial_number][_action_id].action_name, actions[_device_serial_number][_action_id].action_price, actions[_device_serial_number][_action_id].action_duration, _device_serial_number, devices[_device_serial_number].device_name, msg.sender, devices[_device_serial_number].device_address, now));
+            emit ActionDisable(
+                _device_serial_number,
+                _action_id,
+                action_history.action_name,
+                action_history.action_price,
+                action_history.action_duration,
+                true);
             return true;
         }
     }
@@ -226,75 +242,75 @@ contract Rawbot is Owned, StandardToken {
         return address(this).balance;
     }
 
-    function getDeviceAction(string _device_serial_number, uint256 _action_id) public view returns (uint, string, uint256, uint256, bool){
-        Action storage action = actions[_device_serial_number][_action_id];
-        return (action.action_id, action.action_name, action.action_price, action.action_duration, action.action_enabled);
-    }
-
     function getTotalDevices() public view returns (uint) {
         return (device_serial_numbers.length);
     }
 
-    function getExchangesOf(address _address) view public returns (uint256){
-        return exchangeOf[_address].raw_amount;
+    function getExchangeLeftOf(address _address) view public returns (uint256){
+        return historyOf[_address].allowed_to_exchange;
     }
 
-    //gives error
-    // function getDevice(string _device_serial_number) public view returns (string, string, uint256, address){
-    //     return (devices[_device_serial_number].device_serial_number, devices[_device_serial_number].device_name, devices[_device_serial_number].device_balance, devices[_device_serial_number].device_address);
+    // "0x577ccfbd7b0ee9e557029775c531552a65d9e11d", "ABC1"
+    function getDevice(address _device_address, string _device_serial_number) public view returns (string, uint256, address, bool){
+        Device storage current_device = devices[_device_address][_device_serial_number];
+        return (current_device.device_name, current_device.device_balance, current_device.device_owner, current_device.available);
+    }
+
+    function getDeviceActionOf(address _device_address, string _device_serial_number, uint256 _index) public view returns (uint256, string, uint256, uint256, bool, bool) {
+        Action storage current_device_action = devices[_device_address][_device_serial_number].device_actions[_index];
+        return (current_device_action.action_id, current_device_action.action_name, current_device_action.action_price, current_device_action.action_duration, current_device_action.action_enabled, current_device_action.available);
+    }
+
+    function getDeviceActionHistoryOf(address _device_address, string _device_serial_number, uint256 _index) public view returns (uint256, string, uint256, uint256, address, uint256) {
+        ActionHistory storage current_device_history = devices[_device_address][_device_serial_number].device_history[_index];
+        return (current_device_history.action_id, current_device_history.action_name, current_device_history.action_price, current_device_history.action_duration, current_device_history.user, current_device_history.time);
+    }
+
+    function getActionLengthOf(address _device_address, string _device_serial_number) view public returns (uint256) {
+        return devices[_device_address][_device_serial_number].device_actions.length;
+    }
+
+    function getHistoryLengthOf(address _device_address, string _device_serial_number) view public returns (uint256) {
+        return devices[_device_address][_device_serial_number].device_history.length;
+    }
+
+    function getAddresses() view public returns (address[]) {
+        return exchange_addresses;
+    }
+
+    function getEthereumPrice() public view returns (uint) {
+        return ETH_PRICE;
+    }
+
+    // function fetchOraclizeFee() public payable {
+    //     oraclize_fee = oraclize_getPrice("URL");
     // }
 
-    // function getActionsLengthOf(string _device_serial_number) view public returns (uint256) {
-    //     return actions[_device_serial_number].length;
+    // function fetchEthereumPrice() public payable {
+    //     if (oraclize_getPrice("URL") > address(this).balance) {
+    //         emit OraclizeLog("Oraclize query was NOT sent, please add some ETH to cover for the query fee", now);
+    //     } else {
+    //         emit OraclizeLog("Oraclize query was sent, standing by for the answer..", now);
+    //         oraclize_fee = oraclize_getPrice("URL");
+    //         oraclize_query(0, "URL", "json(https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD).USD");
+    //     }
     // }
 
-    // function getActionOf(string _device_serial_number, uint256 _action_id) view public returns (uint256, string, uint256, uint256, bool, bool) {
-    //     return (actions[_device_serial_number][_action_id].action_id,
-    //     actions[_device_serial_number][_action_id].action_name,
-    //     actions[_device_serial_number][_action_id].action_price,
-    //     actions[_device_serial_number][_action_id].action_duration,
-    //     actions[_device_serial_number][_action_id].action_enabled,
-    //     actions[_device_serial_number][_action_id].available);
+    // function initEthereumPrice() public payable {
+    //     if (oraclize_getPrice("URL") > address(this).balance) {
+    //         emit OraclizeLog("Oraclize query was NOT sent, please add some ETH to cover for the query fee", now);
+    //     } else {
+    //         emit OraclizeLog("Oraclize query was sent, standing by for the answer..", now);
+    //         oraclize_fee = oraclize_getPrice("URL");
+    //         oraclize_query(15, "URL", "json(https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD).USD");
+    //     }
     // }
 
-    // function getAddresses() view public returns (address[]) {
-    //     return exchange_addresses;
+    // function __callback(bytes32 myid, string result) {
+    //     if (msg.sender != oraclize_cbAddress()) revert();
+    //     ETH_PRICE = parseInt(result);
+    //     emit OraclizeLog(result, now);
+    //     last_price_update = now;
+    //     price_status = PRICE_CHECKING_STATUS.FETCHED;
     // }
-
-    // function getEthereumPrice() public view returns (uint) {
-    //     return ETH_PRICE;
-    // }
-
-    //    function fetchOraclizeFee() public payable {
-    //        oraclize_fee = oraclize_getPrice("URL");
-    //    }
-    //
-    //    function fetchEthereumPrice() public payable {
-    //        if (oraclize_getPrice("URL") > address(this).balance) {
-    //            emit LogNewOraclizeQuery("Oraclize query was NOT sent, please add some ETH to cover for the query fee");
-    //        } else {
-    //            emit LogNewOraclizeQuery("Oraclize query was sent, standing by for the answer..");
-    //            oraclize_fee = oraclize_getPrice("URL");
-    //            oraclize_query(0, "URL", "json(https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD).USD");
-    //        }
-    //    }
-    //
-    //    function initEthereumPrice() public payable {
-    //        if (oraclize_getPrice("URL") > address(this).balance) {
-    //            emit LogNewOraclizeQuery("Oraclize query was NOT sent, please add some ETH to cover for the query fee");
-    //        } else {
-    //            emit LogNewOraclizeQuery("Oraclize query was sent, standing by for the answer..");
-    //            oraclize_fee = oraclize_getPrice("URL");
-    //            oraclize_query(15, "URL", "json(https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD).USD");
-    //        }
-    //    }
-    //
-    //    function __callback(bytes32 myid, string result) {
-    //        if (msg.sender != oraclize_cbAddress()) revert();
-    //        ETH_PRICE = parseInt(result);
-    //        emit LogPriceUpdated(ETH_PRICE);
-    //        last_price_update = now;
-    //        price_status = PRICE_CHECKING_STATUS.FETCHED;
-    //        ExecuteAllExchanges();
-    //    }
 }
