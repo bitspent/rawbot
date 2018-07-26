@@ -8,104 +8,112 @@
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="./bootstrap/css/bootstrap.min.css">
-    <link rel='stylesheet' href='./style.css' />
+    <link rel='stylesheet' href='./style.css'/>
 
     <title>Rawbot - Your next IoT payment gateway for all your needs!</title>
 </head>
 
 <body>
-    <div class="container-fluid">
-        <h1>Rawbot</h1>
+<div class="container-fluid">
+    <h1>Rawbot</h1>
 
-        <div id="exchangeDiv1">
-            <div class="input-group col-md-4">
-                <input type="text" class="form-control" placeholder="The amount of Raw you wanna buy" aria-label="Raw amount" aria-describedby="basic-addon2"
-                    id="raw_amount_input">
-                <div class="input-group-append">
-                    <button class="btn btn-outline-secondary btn-buy-raw" type="button">Buy</button>
-                </div>
-            </div>
-            <div class="input-group col-md-4">
-                <p id="txHash"></p>
+    <div id="exchangeDiv1">
+        <div class="input-group col-md-4">
+            <input type="text" class="form-control" placeholder="The amount of Raw you wanna buy"
+                   aria-label="Raw amount" aria-describedby="basic-addon2"
+                   id="raw_amount_input">
+            <div class="input-group-append">
+                <button class="btn btn-outline-secondary btn-buy-raw" type="button">Buy</button>
             </div>
         </div>
-
-        <div id="exchangeDiv2" style="margin-top: 25px">
-            <div class="input-group col-md-4">
-                <input type="text" class="form-control" placeholder="The amount of Raw you wanna refund" aria-label="Raw amount" aria-describedby="basic-addon2"
-                    id="raw_amount_output">
-                <div class="input-group-append">
-                    <button class="btn btn-outline-secondary btn-refund-raw" type="button">Refund</button>
-                </div>
-            </div>
+        <div class="input-group col-md-4">
+            <p id="txHash"></p>
         </div>
-
-        <div id="myInformation" style="margin-top: 50px">
-
-        </div>
-
-        <div id="createContract" style="margin-top: 100px">
-            <div class="input-group col-md-4">
-                <div class="input-group-append">
-                    <button class="btn btn-outline-secondary btn-create-device-contract" type="button">Create Devices</button>
-                </div>
-                <br/>
-                <div class="input-group-append">
-                    <button class="btn btn-outline-secondary btn-lengthcontracts-device-contract" type="button">Show # of Devices Contract
-                    </button>
-                </div>
-            </div>
-            <div class="input-group col-md-4" style="margin-top: 5px">
-                <input type="text" class="form-control" placeholder="The device contract address" aria-label="Device address" aria-describedby="basic-addon2"
-                    id="raw_device_contract_input">
-                <div class="input-group-append">
-                    <button class="btn btn-outline-secondary btn-load-device-contract" type="button">Load</button>
-                </div>
-            </div>
-        </div>
-
-
-        <div id="contractActions" style="margin-top: 100px">
-            <div class="input-group col-md-4" style="margin-top: 5px">
-                <input type="text" class="form-control" placeholder="Serial number" aria-label="Device serial number" aria-describedby="basic-addon2"
-                    id="raw_device_add_device_serial_number" />
-                <br/>
-                <input type="text" class="form-control" placeholder="Device name" aria-label="Device name" aria-describedby="basic-addon2"
-                    id="raw_device_add_device_name" />
-                <br/>
-                <div class="input-group-append">
-                    <button class="btn btn-outline-secondary btn-addDevice-device-contract" type="button">Add</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="myDeviceContract" style="margin-top: 25px">
-
-        </div>
-        <div id="myLoadingDeviceContract" style="margin-top: 25px">
-
-        </div>
-
-        <div id="myAddedLengthDevicesContract" style="margin-top: 25px">
-
-        </div>
-
-
-        <div id="myAddedLengthDeviceContract" style="margin-top: 25px">
-
-        </div>
-
-        <!-- Optional JavaScript -->
-        <!-- jQuery first, then Popper.js, then Bootstrap JS -->
-        <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
-            crossorigin="anonymous"></script>
-        <script src="./bootstrap/js/bootstrap.min.js"></script>
-        <script src="./js/bootstrap.min.js"></script>
-        <script src="./js/web3.min.js"></script>
-        <script src="./js/truffle-contract.js"></script>
-        <script src="./js/app.js"></script>
     </div>
+
+    <div id="exchangeDiv2" style="margin-top: 25px">
+        <div class="input-group col-md-4">
+            <input type="text" class="form-control" placeholder="The amount of Raw you wanna refund"
+                   aria-label="Raw amount" aria-describedby="basic-addon2"
+                   id="raw_amount_output">
+            <div class="input-group-append">
+                <button class="btn btn-outline-secondary btn-refund-raw" type="button">Refund</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="myInformation" style="margin-top: 50px">
+
+    </div>
+
+    <div id="createContract" style="margin-top: 100px">
+        <div class="input-group col-md-4">
+            <div class="input-group-append">
+                <button class="btn btn-outline-secondary btn-create-device-contract" type="button">Create Devices
+                </button>
+            </div>
+            <br/>
+            <div class="input-group-append">
+                <button class="btn btn-outline-secondary btn-lengthcontracts-device-contract" type="button">Show # of
+                    Devices Contract
+                </button>
+            </div>
+        </div>
+        <div class="input-group col-md-4" style="margin-top: 5px">
+            <input type="text" class="form-control" placeholder="The device contract address"
+                   aria-label="Device address" aria-describedby="basic-addon2"
+                   id="raw_device_contract_input">
+            <div class="input-group-append">
+                <button class="btn btn-outline-secondary btn-load-device-contract" type="button">Load</button>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="contractActions" style="margin-top: 100px">
+        <div class="input-group col-md-4" style="margin-top: 5px">
+            <input type="text" class="form-control" placeholder="Serial number" aria-label="Device serial number"
+                   aria-describedby="basic-addon2"
+                   id="raw_device_add_device_serial_number"/>
+            <br/>
+            <input type="text" class="form-control" placeholder="Device name" aria-label="Device name"
+                   aria-describedby="basic-addon2"
+                   id="raw_device_add_device_name"/>
+            <br/>
+            <div class="input-group-append">
+                <button class="btn btn-outline-secondary btn-addDevice-device-contract" type="button">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="myDeviceContract" style="margin-top: 25px">
+
+    </div>
+    <div id="myLoadingDeviceContract" style="margin-top: 25px">
+
+    </div>
+
+    <div id="myAddedLengthDevicesContract" style="margin-top: 25px">
+
+    </div>
+
+
+    <div id="myAddedLengthDeviceContract" style="margin-top: 25px">
+
+    </div>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"
+            integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
+            crossorigin="anonymous"></script>
+    <script src="./bootstrap/js/bootstrap.min.js"></script>
+    <script src="./js/bootstrap.min.js"></script>
+    <script src="./js/web3.min.js"></script>
+    <script src="./js/truffle-contract.js"></script>
+    <script src="./js/app.js"></script>
+</div>
 </body>
 
 </html>
