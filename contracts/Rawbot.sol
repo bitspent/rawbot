@@ -17,7 +17,6 @@ contract Rawbot is Owned, StandardToken {
     mapping(address => mapping(string => Device)) devices;
     mapping(address => bool) public frozenAccount;
     mapping(address => ActionHistory[]) public actionsHistoryOf;
-
     mapping(address => User) public historyOf;
 
     struct User {
@@ -79,16 +78,12 @@ contract Rawbot is Owned, StandardToken {
     }
 
     event OraclizeLog(string _description, uint256 _time);
-    event LogNewOraclizeQuery(string description);
-
     event SendErrorMessage(string _error_message);
     event AddDevice(address _owner_address, address _device_address, string _device_serial_number, string _device_name, bool _success);
     event FrozenFunds(address target, bool frozen);
-
     event ActionAdd(string, uint, string, uint256, uint256, bool);
     event ActionEnable(string, uint, string, uint256, uint256, bool);
     event ActionDisable(string, uint, string, uint256, uint256, bool);
-
     event ExchangeToEther(address _address, uint256 _amount_received, uint256 _amount_to_give);
     event ExchangeToRaw(address _address, uint256 _amount_received, uint256 _amount_to_give);
 
