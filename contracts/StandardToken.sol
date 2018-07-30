@@ -3,9 +3,11 @@ pragma solidity ^0.4.24;
 interface tokenRecipient {function receiveApproval(address _from, uint256 _value, address _token, bytes _extraData) external;}
 import "./Owned.sol";
 import "./FetchPrice.sol";
+import './SafeMath.sol';
+import './ERC223ReceivingContract.sol';
 
-contract StandardToken is Owned, FetchPrice {
-
+contract StandardToken is Owned, FetchPrice, ERC223ReceivingContract {
+    using SafeMath for uint;
     string public name;
     string public symbol;
     uint8 public decimals = 18;
@@ -16,11 +18,11 @@ contract StandardToken is Owned, FetchPrice {
     mapping(address => uint256) public balanceOf;
     mapping(address => mapping(address => uint256)) public allowance;
 
+
     /*
         ERC-223 related
     */
-
-    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Transfer(address indexed from, address indexed to, uint value, bytes data);
     event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
     event Burn(address indexed from, uint256 value);
     event FrozenFunds(address target, bool frozen);
@@ -50,27 +52,63 @@ contract StandardToken is Owned, FetchPrice {
         symbol = tokenSymbol;
     }
 
-    function _transfer(address _from, address _to, uint _value) internal {
-        require(_to != 0x0);
-        require(balanceOf[_from] >= _value);
-        require(balanceOf[_to] + _value > balanceOf[_to]);
-        uint previousBalances = balanceOf[_from] + balanceOf[_to];
-        balanceOf[_from] -= _value;
-        balanceOf[_to] += _value;
-        emit Transfer(_from, _to, _value);
-        assert(balanceOf[_from] + balanceOf[_to] == previousBalances);
+    /**
+  * @dev Transfer the specified amount of tokens to the specified address.
+  *      Invokes the `tokenFallback` function if the recipient is a contract.
+  *      The token transfer fails if the recipient is a contract
+  *      but does not implement the `tokenFallback` function
+  *      or the fallback function to receive funds.
+  *
+  * @param _to    Receiver address.
+  * @param _value Amount of tokens that will be transferred.
+  * @param _data  Transaction metadata.
+  */
+
+
+    function transfer(address _to, uint _value, bytes _data) {
+        // Standard function transfer similar to ERC20 transfer with no _data .
+        // Added due to backwards compatibility reasons .
+        uint codeLength;
+
+        assembly {
+        // Retrieve the size of the code on target address, this needs assembly .
+            codeLength := extcodesize(_to)
+        }
+
+        balanceOf[msg.sender] = balanceOf[msg.sender].sub(_value);
+        balanceOf[_to] = balanceOf[_to].add(_value);
+        if (codeLength > 0) {
+            ERC223ReceivingContract receiver = ERC223ReceivingContract(_to);
+            receiver.tokenFallback(msg.sender, _value, _data);
+        }
+        emit Transfer(msg.sender, _to, _value, _data);
     }
 
-    function transfer(address _to, uint256 _value) public returns (bool success) {
-        _transfer(msg.sender, _to, _value);
-        return true;
-    }
+    /**
+     * @dev Transfer the specified amount of tokens to the specified address.
+     *      This function works the same with the previous one
+     *      but doesn't contain `_data` param.
+     *      Added due to backwards compatibility reasons.
+     *
+     * @param _to    Receiver address.
+     * @param _value Amount of tokens that will be transferred.
+     */
+    function transfer(address _to, uint _value) {
+        uint codeLength;
+        bytes memory empty;
 
-    function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
-        require(_value <= allowance[_from][msg.sender]);
-        allowance[_from][msg.sender] -= _value;
-        _transfer(_from, _to, _value);
-        return true;
+        assembly {
+        // Retrieve the size of the code on target address, this needs assembly .
+            codeLength := extcodesize(_to)
+        }
+
+        balanceOf[msg.sender] = balanceOf[msg.sender].sub(_value);
+        balanceOf[_to] = balanceOf[_to].add(_value);
+        if (codeLength > 0) {
+            ERC223ReceivingContract receiver = ERC223ReceivingContract(_to);
+            receiver.tokenFallback(msg.sender, _value, empty);
+        }
+        emit Transfer(msg.sender, _to, _value, empty);
     }
 
     function approve(address _spender, uint256 _value) public returns (bool success) {
@@ -104,13 +142,6 @@ contract StandardToken is Owned, FetchPrice {
         totalSupply -= _value;
         emit Burn(_from, _value);
         return true;
-    }
-
-    function mintToken(address target, uint256 mintedAmount) onlyOwner public {
-        balanceOf[target] += mintedAmount;
-        totalSupply += mintedAmount;
-        emit Transfer(0, this, mintedAmount);
-        emit Transfer(this, target, mintedAmount);
     }
 
     function freezeAccount(address target, bool freeze) onlyOwner public {
@@ -148,16 +179,13 @@ contract StandardToken is Owned, FetchPrice {
         emit ExchangeToRaw(msg.sender, msg.value, raw_amount);
     }
 
+
     function getBalance(address _address) public view returns (uint256){
         return balanceOf[_address];
     }
 
     function getContractBalance() public view returns (uint256) {
         return address(this).balance;
-    }
-
-    function getAddresses() view public returns (address[]) {
-        return exchange_addresses;
     }
 
     struct User {
@@ -359,5 +387,9 @@ contract StandardToken is Owned, FetchPrice {
 
     function getHistoryLengthOf(address _device_address, string _device_serial_number) view public returns (uint256) {
         return devices[_device_address][_device_serial_number].device_history.length;
+    }
+
+    function getAddresses() view public returns (address[]) {
+        return exchange_addresses;
     }
 }

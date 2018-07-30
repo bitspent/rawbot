@@ -1,7 +1,6 @@
 pragma solidity ^0.4.24;
 
 import "./StandardToken.sol";
-import "./FetchPrice.sol";
 
 contract Rawbot is StandardToken {
 
