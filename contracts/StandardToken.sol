@@ -4,9 +4,8 @@ interface tokenRecipient {function receiveApproval(address _from, uint256 _value
 import "./Owned.sol";
 import "./FetchPrice.sol";
 import './SafeMath.sol';
-import './ERC223ReceivingContract.sol';
 
-contract StandardToken is Owned, FetchPrice, ERC223ReceivingContract {
+contract StandardToken is Owned, FetchPrice {
     using SafeMath for uint;
     string public name;
     string public symbol;
@@ -18,11 +17,7 @@ contract StandardToken is Owned, FetchPrice, ERC223ReceivingContract {
     mapping(address => uint256) public balanceOf;
     mapping(address => mapping(address => uint256)) public allowance;
 
-
-    /*
-        ERC-223 related
-    */
-    event Transfer(address indexed from, address indexed to, uint value, bytes data);
+    event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
     event Burn(address indexed from, uint256 value);
     event FrozenFunds(address target, bool frozen);
@@ -53,62 +48,52 @@ contract StandardToken is Owned, FetchPrice, ERC223ReceivingContract {
     }
 
     /**
-  * @dev Transfer the specified amount of tokens to the specified address.
-  *      Invokes the `tokenFallback` function if the recipient is a contract.
-  *      The token transfer fails if the recipient is a contract
-  *      but does not implement the `tokenFallback` function
-  *      or the fallback function to receive funds.
-  *
-  * @param _to    Receiver address.
-  * @param _value Amount of tokens that will be transferred.
-  * @param _data  Transaction metadata.
-  */
-
-
-    function transfer(address _to, uint _value, bytes _data) {
-        // Standard function transfer similar to ERC20 transfer with no _data .
-        // Added due to backwards compatibility reasons .
-        uint codeLength;
-
-        assembly {
-        // Retrieve the size of the code on target address, this needs assembly .
-            codeLength := extcodesize(_to)
-        }
-
-        balanceOf[msg.sender] = balanceOf[msg.sender].sub(_value);
-        balanceOf[_to] = balanceOf[_to].add(_value);
-        if (codeLength > 0) {
-            ERC223ReceivingContract receiver = ERC223ReceivingContract(_to);
-            receiver.tokenFallback(msg.sender, _value, _data);
-        }
-        emit Transfer(msg.sender, _to, _value, _data);
+     * Transfer tokens
+     *
+     * Send `_value` tokens to `_to` from your account
+     *
+     * @param _to The address of the recipient
+     * @param _value the amount to send
+     */
+    function transfer(address _to, uint256 _value) public returns (bool success) {
+        _transfer(msg.sender, _to, _value);
+        return true;
     }
 
     /**
-     * @dev Transfer the specified amount of tokens to the specified address.
-     *      This function works the same with the previous one
-     *      but doesn't contain `_data` param.
-     *      Added due to backwards compatibility reasons.
+     * Transfer tokens from other address
      *
-     * @param _to    Receiver address.
-     * @param _value Amount of tokens that will be transferred.
+     * Send `_value` tokens to `_to` in behalf of `_from`
+     *
+     * @param _from The address of the sender
+     * @param _to The address of the recipient
+     * @param _value the amount to send
      */
-    function transfer(address _to, uint _value) {
-        uint codeLength;
-        bytes memory empty;
+    function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
+        require(_value <= allowance[_from][msg.sender]);
+        // Check allowance
+        allowance[_from][msg.sender] -= _value;
+        _transfer(_from, _to, _value);
+        return true;
+    }
 
-        assembly {
-        // Retrieve the size of the code on target address, this needs assembly .
-            codeLength := extcodesize(_to)
-        }
-
-        balanceOf[msg.sender] = balanceOf[msg.sender].sub(_value);
-        balanceOf[_to] = balanceOf[_to].add(_value);
-        if (codeLength > 0) {
-            ERC223ReceivingContract receiver = ERC223ReceivingContract(_to);
-            receiver.tokenFallback(msg.sender, _value, empty);
-        }
-        emit Transfer(msg.sender, _to, _value, empty);
+    /* Internal transfer, only can be called by this contract */
+    function _transfer(address _from, address _to, uint _value) internal {
+        require(_to != 0x0);
+        // Prevent transfer to 0x0 address. Use burn() instead
+        require(balanceOf[_from] >= _value);
+        // Check if the sender has enough
+        require(balanceOf[_to] + _value >= balanceOf[_to]);
+        // Check for overflows
+        require(!frozenAccount[_from]);
+        // Check if sender is frozen
+        require(!frozenAccount[_to]);
+        // Check if recipient is frozen
+        balanceOf[_from] -= _value;
+        // Subtract from the sender
+        balanceOf[_to] += _value;
+        // Add the same to the recipient
+        emit Transfer(_from, _to, _value);
     }
 
     function approve(address _spender, uint256 _value) public returns (bool success) {
