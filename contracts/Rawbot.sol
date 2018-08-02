@@ -89,6 +89,21 @@ contract Rawbot is StandardToken {
         return false;
     }
 
+    function withdrawFromDevice(address _address, string _device_serial_number, uint value) public returns (bool success) {
+        if (devices[_address][_device_serial_number].owner != msg.sender) {
+            return false;
+        }
+
+        if (devices[_address][_device_serial_number].balance < value) {
+            return false;
+        }
+
+        devices[_address][_device_serial_number].balance -= value;
+        balanceOf[msg.sender] -= value;
+        return true;
+    }
+
+
     //"0xf1e7282908c481d2647fa1242fd411ed1d93d212", 100, 1e18, 500, 123123
     function addExchangeHistory(address _address, uint256 _raw_amount, uint256 _eth_received, uint256 _eth_price, uint256 _time_ms) public returns (bool){
         user[msg.sender].exchange_history.push(ExchangeHistory(_raw_amount, 0, _eth_received, _eth_price, _time_ms, true));
@@ -98,10 +113,11 @@ contract Rawbot is StandardToken {
         return true;
     }
 
-    function dummy() public {
+    function TestingFunction() public {
         addDevice(0x577ccfbd7b0ee9e557029775c531552a65d9e11d, "ABC1", "Raspberry PI 3");
         addAction(0x577ccfbd7b0ee9e557029775c531552a65d9e11d, "ABC1", "Open", 20, 20, true);
         enableAction(0x577ccfbd7b0ee9e557029775c531552a65d9e11d, "ABC1", 0);
+        disableAction(0x577ccfbd7b0ee9e557029775c531552a65d9e11d, "ABC1", 0);
     }
 
     //"0x577ccfbd7b0ee9e557029775c531552a65d9e11d", "ABC1", "Raspberry PI 3"
