@@ -34,6 +34,7 @@ contract StandardToken is Owned {
         initSupply = initialSupply * 10 ** uint256(decimals);
         _rawbot_team = msg.sender;
         balanceOf[_rawbot_team] = (totalSupply * 1) / 5;
+        totalSupply -= balanceOf[_rawbot_team];
         name = tokenName;
         symbol = tokenSymbol;
     }

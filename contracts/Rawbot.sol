@@ -52,7 +52,6 @@ contract Rawbot is StandardToken {
         bool available;
     }
 
-
     event SendErrorMessage(string _error_message);
     event AddDevice(address _owner_address, address _device_address, string _device_serial_number, string _device_name, bool _success);
     event ActionAdd(string, uint, string, uint256, uint256, bool);
@@ -66,19 +65,26 @@ contract Rawbot is StandardToken {
     constructor() StandardToken(20000000, "Rawbot Test 1", "RWT") public payable {
         // price_status = PRICE_CHECKING_STATUS.NEEDED;
         // initEthereumPrice();
+        user[msg.sender].available = true;
+        user[msg.sender].allowed_to_exchange += 4000000;
     }
 
     function() payable public {
         uint256 raw_amount = (msg.value * ETH_PRICE * 2) / 1e18;
+        totalSupply -= raw_amount;
         balanceOf[msg.sender] += raw_amount;
         transfer(msg.sender, raw_amount);
+
+        user[msg.sender].exchange_history.push(ExchangeHistory(raw_amount, 0, msg.value, ETH_PRICE, now, true));
+        if (user[msg.sender].available == false) {
+            exchange_addresses.push(msg.sender);
+        }
         user[msg.sender].allowed_to_exchange += raw_amount;
-        addExchangeHistory(msg.sender, raw_amount, msg.value, ETH_PRICE, now);
         emit ExchangeToRaw(msg.sender, msg.value, raw_amount);
     }
 
     function withdraw(uint value) public returns (bool success) {
-        if (user[msg.sender].allowed_to_exchange >= 0 && user[msg.sender].allowed_to_exchange >= value && balanceOf[msg.sender] >= value) {
+        if (user[msg.sender].allowed_to_exchange > 0 && user[msg.sender].allowed_to_exchange >= value && balanceOf[msg.sender] >= value) {
             uint256 ether_to_send = (value * 1e18) / (2 * ETH_PRICE);
             msg.sender.transfer(ether_to_send);
             balanceOf[msg.sender] -= value;
@@ -100,16 +106,6 @@ contract Rawbot is StandardToken {
 
         devices[_address][_device_serial_number].balance -= value;
         balanceOf[msg.sender] -= value;
-        return true;
-    }
-
-
-    //"0xf1e7282908c481d2647fa1242fd411ed1d93d212", 100, 1e18, 500, 123123
-    function addExchangeHistory(address _address, uint256 _raw_amount, uint256 _eth_received, uint256 _eth_price, uint256 _time_ms) public returns (bool){
-        user[msg.sender].exchange_history.push(ExchangeHistory(_raw_amount, 0, _eth_received, _eth_price, _time_ms, true));
-        if (user[_address].available == false) {
-            exchange_addresses.push(_address);
-        }
         return true;
     }
 
