@@ -14,7 +14,6 @@
 
 var HDWalletProvider = require("truffle-hdwallet-provider");
 
-
 module.exports = {
     networks: {
         development: {
@@ -23,7 +22,7 @@ module.exports = {
             network_id: "*" // Match any network id
         },
         ropsten: {
-            provider: new HDWalletProvider("mimic bracket voice boss honey soap much away essay language erosion forum", "https://ropsten.infura.io/S8sXDq6KGrjLO4ckZK2X"),
+            provider: new HDWalletProvider("wine process exact elder divide embody awkward bulb size brown dial drift", "https://ropsten.infura.io/S8sXDq6KGrjLO4ckZK2X"),
             network_id: 3,
             gas: 4712388,
             gasPrice: 3000000

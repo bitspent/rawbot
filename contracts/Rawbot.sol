@@ -39,15 +39,15 @@ contract Rawbot is StandardToken {
         uint256 price;
         uint256 duration;
         uint256 time;
+        bool enable;
         bool refunded;
+        bool available;
     }
 
     struct Device {
         string name;
         uint256 balance;
         address owner;
-        Action[] actions;
-        ActionHistory[] history;
         bool busy;
         bool available;
     }
@@ -60,6 +60,11 @@ contract Rawbot is StandardToken {
     event Testing(string);
 
     mapping(address => mapping(string => Device)) devices;
+    mapping(address => mapping(string => uint)) deviceActionsLength;
+    mapping(address => mapping(string => uint)) deviceActionsHistoryLength;
+    mapping(address => mapping(string => mapping(uint => Action))) deviceActions;
+    mapping(address => mapping(string => mapping(uint => ActionHistory))) deviceActionsHistory;
+
     mapping(address => User) public user;
 
     constructor() StandardToken(20000000, "Rawbot Test 1", "RWT") public payable {
@@ -83,7 +88,7 @@ contract Rawbot is StandardToken {
         emit ExchangeToRaw(msg.sender, msg.value, raw_amount);
     }
 
-    function withdraw(uint value) public returns (bool success) {
+    function withdraw(uint value) public payable returns (bool success) {
         if (user[msg.sender].allowed_to_exchange > 0 && user[msg.sender].allowed_to_exchange >= value && balanceOf[msg.sender] >= value) {
             uint256 ether_to_send = (value * 1e18) / (2 * ETH_PRICE);
             msg.sender.transfer(ether_to_send);
@@ -95,7 +100,7 @@ contract Rawbot is StandardToken {
         return false;
     }
 
-    function withdrawFromDevice(address _address, string _device_serial_number, uint value) public returns (bool success) {
+    function withdrawFromDevice(address _address, string _device_serial_number, uint value) public payable returns (bool success) {
         if (devices[_address][_device_serial_number].owner != msg.sender) {
             return false;
         }
@@ -105,33 +110,51 @@ contract Rawbot is StandardToken {
         }
 
         devices[_address][_device_serial_number].balance -= value;
-        balanceOf[msg.sender] -= value;
+        balanceOf[msg.sender] += value;
         return true;
     }
 
     function TestingFunction() public {
         addDevice(0x577ccfbd7b0ee9e557029775c531552a65d9e11d, "ABC1", "Raspberry PI 3");
         addAction(0x577ccfbd7b0ee9e557029775c531552a65d9e11d, "ABC1", "Open", 20, 20, true);
+    }
+
+    function TestingFunction2() public {
         enableAction(0x577ccfbd7b0ee9e557029775c531552a65d9e11d, "ABC1", 0);
-        disableAction(0x577ccfbd7b0ee9e557029775c531552a65d9e11d, "ABC1", 0);
+        //        disableAction(0x577ccfbd7b0ee9e557029775c531552a65d9e11d, "ABC1", 0);
+    }
+
+    function TestingFunction3() public {
+        //        refund(0x577ccfbd7b0ee9e557029775c531552a65d9e11d, "ABC1", 0, 0);
     }
 
     //"0x577ccfbd7b0ee9e557029775c531552a65d9e11d", "ABC1", "Raspberry PI 3"
     function addDevice(address _address, string _device_serial_number, string _device_name) public returns (bool success) {
-        if (devices[_address][_device_serial_number].available == false) {
-            Device storage current_device = devices[_address][_device_serial_number];
-            current_device.name = _device_name;
-            current_device.balance = 0;
-            current_device.owner = msg.sender;
-            current_device.busy = false;
-            current_device.available = true;
-            device_serial_numbers.push(_device_serial_number);
-            emit AddDevice(msg.sender, _address, _device_serial_number, _device_name, true);
-            return true;
+        if (devices[_address][_device_serial_number].available == true) {
+            emit SendErrorMessage("Device serial number is already available on the same address.");
+            return false;
         }
+        Device storage current_device = devices[_address][_device_serial_number];
+        current_device.name = _device_name;
+        current_device.balance = 0;
+        current_device.owner = msg.sender;
+        current_device.busy = false;
+        current_device.available = true;
+        device_serial_numbers.push(_device_serial_number);
+        emit AddDevice(msg.sender, _address, _device_serial_number, _device_name, true);
+        return true;
+    }
 
-        emit SendErrorMessage("Device serial number is already available on the same address.");
-        return false;
+    function getActionsLengthOfDevice(address _device_address, string _device_serial_number) public view returns (uint) {
+        return deviceActionsLength[_device_address][_device_serial_number];
+    }
+
+    function getActionsHistoryLengthOfDevice(address _device_address, string _device_serial_number) public view returns (uint) {
+        return deviceActionsHistoryLength[_device_address][_device_serial_number];
+    }
+
+    function TestingIncrement(address _device_address, string _device_serial_number) public {
+        deviceActionsHistoryLength[_device_address][_device_serial_number]++;
     }
 
     //"0x577ccfbd7b0ee9e557029775c531552a65d9e11d", "ABC1", "Open", 20, 20, true
@@ -140,10 +163,10 @@ contract Rawbot is StandardToken {
             emit SendErrorMessage("Device serial number is not available.");
             return false;
         }
-
-        uint256 actions_length = devices[_device_address][_device_serial_number].actions.length;
-        devices[_device_address][_device_serial_number].actions.push(Action(actions_length, _action_name, _action_price, _action_duration, _refundable, true));
+        uint actions_length = deviceActionsLength[_device_address][_device_serial_number];
+        deviceActions[_device_address][_device_serial_number][actions_length] = Action(actions_length, _action_name, _action_price, _action_duration, _refundable, true);
         emit ActionAdd(_device_serial_number, actions_length, _action_name, _action_price, _action_duration, true);
+        deviceActionsLength[_device_address][_device_serial_number]++;
         return true;
     }
 
@@ -159,72 +182,91 @@ contract Rawbot is StandardToken {
             return false;
         }
 
-        if (devices[_device_address][_device_serial_number].actions[_action_id].available == false) {
+        if (deviceActions[_device_address][_device_serial_number][_action_id].available == false) {
             emit SendErrorMessage("Device action id is not available.");
             return false;
         }
 
-        if (balanceOf[msg.sender] < devices[_device_address][_device_serial_number].actions[_action_id].price) {
+        if (balanceOf[msg.sender] < deviceActions[_device_address][_device_serial_number][_action_id].price) {
             emit SendErrorMessage("User doesn't have enough balance to perform action.");
             return false;
         }
 
         devices[_device_address][_device_serial_number].busy = true;
-        balanceOf[msg.sender] -= devices[_device_address][_device_serial_number].actions[_action_id].price;
-        balanceOf[devices[_device_address][_device_serial_number].owner] += devices[_device_address][_device_serial_number].actions[_action_id].price;
+        balanceOf[msg.sender] -= deviceActions[_device_address][_device_serial_number][_action_id].price;
+        balanceOf[devices[_device_address][_device_serial_number].owner] += deviceActions[_device_address][_device_serial_number][_action_id].price;
 
-        user[msg.sender].action_history.push(ActionHistory(
-                msg.sender,
-                _action_id,
-                devices[_device_address][_device_serial_number].actions[_action_id].name,
-                devices[_device_address][_device_serial_number].actions[_action_id].price,
-                devices[_device_address][_device_serial_number].actions[_action_id].duration,
-                now,
-                false
-            ));
-        emit ActionEnable(
-            _device_serial_number,
-            _action_id,
-            devices[_device_address][_device_serial_number].actions[_action_id].name,
-            devices[_device_address][_device_serial_number].actions[_action_id].price,
-            devices[_device_address][_device_serial_number].actions[_action_id].duration,
-            true);
+        uint actions_length = deviceActionsHistoryLength[_device_address][_device_serial_number];
+        deviceActionsHistory[_device_address][_device_serial_number][actions_length] = ActionHistory(msg.sender, _action_id, deviceActions[_device_address][_device_serial_number][_action_id].name, deviceActions[_device_address][_device_serial_number][_action_id].price, deviceActions[_device_address][_device_serial_number][_action_id].duration, now, true, false, true);
+        user[msg.sender].action_history.push(ActionHistory(msg.sender, _action_id, deviceActions[_device_address][_device_serial_number][_action_id].name, deviceActions[_device_address][_device_serial_number][_action_id].price, deviceActions[_device_address][_device_serial_number][_action_id].duration, now, true, false, true));
+        emit ActionEnable(_device_serial_number, _action_id, deviceActions[_device_address][_device_serial_number][_action_id].name, deviceActions[_device_address][_device_serial_number][_action_id].price, deviceActions[_device_address][_device_serial_number][_action_id].duration, true);
+        deviceActionsHistoryLength[_device_address][_device_serial_number]++;
         return true;
     }
 
     //"0x577ccfbd7b0ee9e557029775c531552a65d9e11d", "ABC1", 1
-    function disableAction(address _device_address, string _device_serial_number, uint256 _action_id) public returns (bool success) {
+    function disableAction(address _device_address, string _device_serial_number, uint256 _action_id) public payable returns (bool success) {
         if (devices[_device_address][_device_serial_number].available == false) {
             emit SendErrorMessage("Device serial number is not available.");
             return false;
         }
 
-        devices[_device_address][_device_serial_number].busy = false;
-        ActionHistory storage action_history;
-        action_history.id = _action_id;
-        action_history.name = devices[_device_address][_device_serial_number].actions[_action_id].name;
-        action_history.price = devices[_device_address][_device_serial_number].actions[_action_id].price;
-        action_history.duration = devices[_device_address][_device_serial_number].actions[_action_id].duration;
-        action_history.time = now;
-        devices[_device_address][_device_serial_number].history.push(action_history);
+        if (deviceActions[_device_address][_device_serial_number][_action_id].available == false) {
+            emit SendErrorMessage("Device action id is not available.");
+            return false;
+        }
 
-        user[msg.sender].action_history.push(ActionHistory(
-                msg.sender,
-                _action_id,
-                devices[_device_address][_device_serial_number].actions[_action_id].name,
-                devices[_device_address][_device_serial_number].actions[_action_id].price,
-                devices[_device_address][_device_serial_number].actions[_action_id].duration,
-                now,
-                false
-            ));
-        emit ActionDisable(
-            _device_serial_number,
-            _action_id,
-            devices[_device_address][_device_serial_number].actions[_action_id].name,
-            devices[_device_address][_device_serial_number].actions[_action_id].price,
-            devices[_device_address][_device_serial_number].actions[_action_id].duration,
-            true);
+        uint actions_length = deviceActionsHistoryLength[_device_address][_device_serial_number];
+        deviceActionsHistory[_device_address][_device_serial_number][actions_length] = ActionHistory(msg.sender, _action_id, deviceActions[_device_address][_device_serial_number][_action_id].name, deviceActions[_device_address][_device_serial_number][_action_id].price, deviceActions[_device_address][_device_serial_number][_action_id].duration, now, true, false, true);
+        user[msg.sender].action_history.push(ActionHistory(msg.sender, _action_id, deviceActions[_device_address][_device_serial_number][_action_id].name, deviceActions[_device_address][_device_serial_number][_action_id].price, deviceActions[_device_address][_device_serial_number][_action_id].duration, now, false, false, true));
+        emit ActionDisable(_device_serial_number, _action_id, deviceActions[_device_address][_device_serial_number][_action_id].name, deviceActions[_device_address][_device_serial_number][_action_id].price, deviceActions[_device_address][_device_serial_number][_action_id].duration, true);
+        deviceActionsHistoryLength[_device_address][_device_serial_number]++;
         return true;
+    }
+
+    function refund(address _device_address, string _device_serial_number, uint256 _action_id, uint256 _action_history_id) payable public returns (bool success) {
+        if (devices[_device_address][_device_serial_number].available == false) {
+            emit SendErrorMessage("Device serial number is not available.");
+            return false;
+        }
+
+        if (deviceActions[_device_address][_device_serial_number][_action_id].refundable == false) {
+            emit SendErrorMessage("Device action is not refundable.");
+            return false;
+        }
+
+        if (deviceActions[_device_address][_device_serial_number][_action_id].available == false) {
+            emit SendErrorMessage("Device action id is not available.");
+            return false;
+        }
+
+        if (deviceActionsHistory[_device_address][_device_serial_number][_action_history_id].available == false) {
+            emit SendErrorMessage("Device history index is not available.");
+            return false;
+        }
+
+        if (deviceActionsHistory[_device_address][_device_serial_number][_action_history_id].refunded == true) {
+            emit SendErrorMessage("Device action has been refunded.");
+            return false;
+        }
+
+        if (deviceActionsHistory[_device_address][_device_serial_number][_action_history_id].id != _action_id) {
+            emit SendErrorMessage("Device history action id doesn't match the action id.");
+            return false;
+        }
+
+        //        if (deviceActionsHistory[_device_address][_device_serial_number][_action_history_id].duration + deviceActionsHistory[_device_address][_device_serial_number][_action_history_id].time < now) {
+        //            emit SendErrorMessage("User cannot be refunded.");
+        //            return false;
+        //        }
+
+        balanceOf[devices[_device_address][_device_serial_number].owner] -= deviceActions[_device_address][_device_serial_number][_action_id].price;
+        balanceOf[deviceActionsHistory[_device_address][_device_serial_number][_action_history_id].user] += deviceActions[_device_address][_device_serial_number][_action_id].price;
+        deviceActionsHistory[_device_address][_device_serial_number][_action_history_id].refunded = true;
+    }
+
+    function refundAutomatic() public {
+
     }
 
     function getTotalDevices() public view returns (uint) {
@@ -241,25 +283,19 @@ contract Rawbot is StandardToken {
         return (current_device.name, current_device.balance, current_device.owner, current_device.available);
     }
 
-    function getDeviceActionOf(address _device_address, string _device_serial_number, uint256 _index) public view returns (uint256, string, uint256, uint256, bool) {
-        Action storage current_device_action = devices[_device_address][_device_serial_number].actions[_index];
-        return (current_device_action.id, current_device_action.name, current_device_action.price, current_device_action.duration, current_device_action.available);
-    }
-
-    function getDeviceActionHistoryOf(address _device_address, string _device_serial_number, uint256 _index) public view returns (uint256, string, uint256, uint256, address, uint256) {
-        ActionHistory storage current_device_history = devices[_device_address][_device_serial_number].history[_index];
-        return (current_device_history.id, current_device_history.name, current_device_history.price, current_device_history.duration, current_device_history.user, current_device_history.time);
-    }
-
-    function getActionLengthOf(address _device_address, string _device_serial_number) view public returns (uint256) {
-        return devices[_device_address][_device_serial_number].actions.length;
-    }
-
-    function getHistoryLengthOf(address _device_address, string _device_serial_number) view public returns (uint256) {
-        return devices[_device_address][_device_serial_number].history.length;
-    }
-
     function getAddresses() view public returns (address[]) {
         return exchange_addresses;
+    }
+
+    function getAction(address _device_address, string _device_serial_number, uint _index) public view returns (string){
+        return deviceActions[_device_address][_device_serial_number][_index].name;
+    }
+
+    function getDeviceOwner(address _address, string _device_serial_number) view public returns (address) {
+        return devices[_address][_device_serial_number].owner;
+    }
+
+    function destoryContract() public {
+        selfdestruct(this);
     }
 }
