@@ -4,26 +4,9 @@ interface tokenRecipient {function receiveApproval(address _from, uint256 _value
 import "./Owned.sol";
 // import "./FetchPrice.sol";
 // import './SafeMath.sol';
+import "./Device.sol";
 
-contract StandardToken is Owned {
-    // , FetchPrice
-    // using SafeMath for uint;
-    string public name;
-    string public symbol;
-    uint8 public decimals = 0;
-    uint256 public totalSupply;
-    uint256 public initSupply;
-    address _rawbot_team;
-    mapping(address => bool) public frozenAccount;
-    mapping(address => uint256) public balanceOf;
-    mapping(address => mapping(address => uint256)) public allowance;
-
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
-    event Burn(address indexed from, uint256 value);
-    event FrozenFunds(address target, bool frozen);
-    event ExchangeToEther(address _address, uint256 _amount_received, uint256 _amount_to_give);
-    event ExchangeToRaw(address _address, uint256 _amount_received, uint256 _amount_to_give);
+contract StandardToken is Owned, Device {
 
     constructor(
         uint256 initialSupply,
@@ -141,5 +124,31 @@ contract StandardToken is Owned {
 
     function getContractBalance() public view returns (uint256) {
         return address(this).balance;
+    }
+
+    function() payable public {
+        uint256 raw_amount = (msg.value * ETH_PRICE * 2) / 1e18;
+        totalSupply -= raw_amount;
+        balanceOf[msg.sender] += raw_amount;
+        transfer(msg.sender, raw_amount);
+
+        user[msg.sender].exchange_history.push(ExchangeHistory(raw_amount, 0, msg.value, ETH_PRICE, now, true));
+        if (user[msg.sender].available == false) {
+            exchange_addresses.push(msg.sender);
+        }
+        user[msg.sender].allowed_to_exchange += raw_amount;
+        emit ExchangeToRaw(msg.sender, msg.value, raw_amount);
+    }
+
+    function withdraw(uint value) public payable returns (bool success) {
+        if (user[msg.sender].allowed_to_exchange > 0 && user[msg.sender].allowed_to_exchange >= value && balanceOf[msg.sender] >= value) {
+            uint256 ether_to_send = (value * 1e18) / (2 * ETH_PRICE);
+            msg.sender.transfer(ether_to_send);
+            balanceOf[msg.sender] -= value;
+            user[msg.sender].allowed_to_exchange -= value;
+            emit ExchangeToEther(msg.sender, value, ether_to_send);
+            return true;
+        }
+        return false;
     }
 }
