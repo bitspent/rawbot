@@ -15,8 +15,12 @@ contract Merchant {
     event ActionDisable(string, uint, string, uint256, uint256, bool);
     event Refund(uint, uint, uint, uint);
 
+    address public rawbot_address = 0xe6fe5c7561c807b814593ca49e5d268340ba01a6;
+    Rawbot public rawbot;
+
     constructor(address _merchant_address) payable public {
         merchant_address = _merchant_address;
+        rawbot = Rawbot(rawbot_address);
     }
 
     struct Device {
@@ -47,18 +51,18 @@ contract Merchant {
         bool available;
     }
 
-
     //"ABC", "Raspberry PI 3"
     function addDevice(string device_serial_number, string device_name) public payable returns (bool){
-        require(merchant_address == msg.sender);
+        //        require(merchant_address == msg.sender);
         require(devices[device_serial_number].available == false);
         devices[device_serial_number].device_name = device_name;
         devices[device_serial_number].available = true;
+        return true;
     }
 
-    //"Open", 20, 20, true
+    //"ABC", "Open", 20, 20, true
     function addAction(string device_serial_number, string action_name, uint action_price, uint action_duration, bool refundable) public payable returns (bool){
-        require(merchant_address == msg.sender);
+        //        require(merchant_address == msg.sender);
         require(devices[device_serial_number].available == true);
         devices[device_serial_number].device_actions.push(Action(devices[device_serial_number].device_actions.length, action_name, action_price, action_duration, refundable, true));
         emit ActionAdd(device_serial_number, devices[device_serial_number].device_actions.length, action_name, action_price, action_duration, refundable, true);
@@ -69,6 +73,8 @@ contract Merchant {
     function enableAction(string device_serial_number, uint action_id) public payable returns (bool success) {
         require(devices[device_serial_number].available == true);
         devices[device_serial_number].device_history.push(ActionHistory(msg.sender, action_id, devices[device_serial_number].device_actions[action_id].name, devices[device_serial_number].device_actions[action_id].price, devices[device_serial_number].device_actions[action_id].duration, now, true, false, true));
+        //        rawbot.balanceOf[msg.sender] -= devices[device_serial_number].device_actions[action_id].price;
+        //        rawbot.balanceOf[merchant_address] += devices[device_serial_number].device_actions[action_id].price;
         emit ActionEnable(device_serial_number, action_id, devices[device_serial_number].device_actions[action_id].name, devices[device_serial_number].device_actions[action_id].price, devices[device_serial_number].device_actions[action_id].duration, true);
         return true;
     }
@@ -83,7 +89,7 @@ contract Merchant {
 
     //"ABC", 0, 0
     function refund(string device_serial_number, uint256 action_id, uint256 _action_history_id) payable public returns (bool) {
-        require(msg.sender == merchant_address);
+        //        require(msg.sender == merchant_address);
         require(devices[device_serial_number].available == true);
         require(devices[device_serial_number].device_actions[action_id].available == true);
         require(devices[device_serial_number].device_actions[action_id].refundable == true);
@@ -103,6 +109,7 @@ contract Merchant {
         require(devices[device_serial_number].device_history[_action_history_id].refunded == false);
         uint time_passed = now - devices[device_serial_number].device_history[_action_history_id].time + devices[device_serial_number].device_history[_action_history_id].duration;
         require(time_passed < 0);
+        return true;
     }
 
     function getActionPrice(string device_serial_number, uint action_id) public view returns (uint) {

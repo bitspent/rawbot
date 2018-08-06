@@ -1,12 +1,23 @@
 pragma solidity ^0.4.24;
 
 import "./StandardToken.sol";
+//import "./Oraclize.sol";
 
 contract Rawbot is StandardToken {
-    uint256 ETH_PRICE = 500;
     address public _rawbot_team;
     address[] public exchange_addresses;
     mapping(address => User) public user;
+
+    event OraclizeLog(string _description, uint256 _time);
+
+    uint256 public ETH_PRICE = 500;
+    uint256 public oraclize_fee = 0;
+    uint256 public last_price_update = 0;
+    PRICE_CHECKING_STATUS public price_status;
+
+    enum PRICE_CHECKING_STATUS {
+        NEEDED, PENDING, FETCHED
+    }
 
     struct User {
         uint256 allowed_to_exchange;
@@ -47,9 +58,9 @@ contract Rawbot is StandardToken {
         emit ExchangeToRaw(msg.sender, msg.value, raw_amount);
     }
 
-    function withdraw(uint value) public payable returns (bool success) {
-        require(user[msg.sender].allowed_to_exchange > 0);
-        require(user[msg.sender].allowed_to_exchange >= value);
+    function withdraw(uint value) public payable returns (bool) {
+        require(getExchangeLeftOf(msg.sender) > 0);
+        require(getExchangeLeftOf(msg.sender) >= value);
         require(balanceOf[msg.sender] >= value);
         uint256 ether_to_send = (value * 1e18) / (2 * ETH_PRICE);
         msg.sender.transfer(ether_to_send);
@@ -66,4 +77,30 @@ contract Rawbot is StandardToken {
     function getExchangeLeftOf(address _address) view public returns (uint256){
         return user[_address].allowed_to_exchange;
     }
+
+    function getEthereumPrice() public view returns (uint) {
+        return ETH_PRICE;
+    }
+
+    //    function fetchOraclizeFee() public payable {
+    //        oraclize_fee = oraclize_getPrice("URL");
+    //    }
+    //
+    //    function fetchEthereumPrice(uint timing) public payable {
+    //        if (oraclize_getPrice("URL") > address(this).balance) {
+    //            emit OraclizeLog("Oraclize query was NOT sent, please add some ETH to cover for the query fee", now);
+    //        } else {
+    //            emit OraclizeLog("Oraclize query was sent, standing by for the answer..", now);
+    //            oraclize_fee = oraclize_getPrice("URL");
+    //            oraclize_query(timing, "URL", "json(https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD).USD");
+    //        }
+    //    }
+    //
+    //    function __callback(bytes32 myid, string result) {
+    //        if (msg.sender != oraclize_cbAddress()) revert();
+    //        ETH_PRICE = parseInt(result);
+    //        emit OraclizeLog(result, now);
+    //        last_price_update = now;
+    //        price_status = PRICE_CHECKING_STATUS.FETCHED;
+    //    }
 }

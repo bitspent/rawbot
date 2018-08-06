@@ -1,21 +1,20 @@
 pragma solidity ^0.4.24;
 
-import "./Rawbot.sol";
 import "./Merchant.sol";
 
-contract DeviceManager {
-    Rawbot public rawbot;
+contract MerchantManager {
+
     mapping(address => address) public merchants;
 
     event AddMerchant(address, address);
 
-    constructor(address rawbot_address) public {
-        rawbot = Rawbot(rawbot_address);
+    constructor() public payable {
     }
 
-    function addMerchant() public payable returns (Merchant) {
+    function addMerchant() public payable returns (bool) {
         Merchant merchant = new Merchant(msg.sender);
+        merchants[merchant] = msg.sender;
         emit AddMerchant(msg.sender, merchant);
-        return merchant;
+        return true;
     }
 }
