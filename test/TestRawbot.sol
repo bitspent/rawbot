@@ -16,12 +16,6 @@ contract TestRawbot {
         Assert.equal(rawbot.getBalance(tx.origin), expected, "Owner should have 4000000 MetaCoin initially");
     }
 
-    function testWithdrawCoins(){
-        uint coins = 1000;
-        bool withdrawn = rawbot.withdraw(coins);
-        Assert.isTrue(withdrawn, "Failed to withdraw ETH");
-    }
-
     function testAllowedToExchange(){
         Assert.isTrue(rawbot.getExchangeLeftOf(msg.sender) > 0, "User has zero raw coins to exchange.");
     }

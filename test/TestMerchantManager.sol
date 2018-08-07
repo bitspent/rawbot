@@ -5,8 +5,17 @@ import "truffle/DeployedAddresses.sol";
 import "../contracts/MerchantManager.sol";
 
 contract TestMerchantManager {
+    MerchantManager merchant_manager;
+
+    constructor() public {
+        merchant_manager = MerchantManager(DeployedAddresses.MerchantManager());
+    }
+
     function testAddMerchant() public {
-        MerchantManager meta = MerchantManager(DeployedAddresses.MerchantManager());
-        Assert.isTrue(meta.addMerchant(), "Failed to add merchant");
+        Assert.isTrue(merchant_manager.addMerchant(), "Failed to add merchant");
+    }
+
+    function testMerchantsAmount() public {
+        Assert.isTrue(merchant_manager.getMerchants() > 0, "Amount of merchants equals zero.");
     }
 }
