@@ -105,10 +105,6 @@ contract StandardToken is Owned {
         return initSupply;
     }
 
-    function getBalance(address _address) public view returns (uint256){
-        return balanceOf[_address];
-    }
-
     function getContractBalance() public view returns (uint256) {
         return address(this).balance;
     }
