@@ -4,14 +4,14 @@ import "./StandardToken.sol";
 import "./Oraclize.sol";
 
 contract Rawbot is usingOraclize, StandardToken {
-    address public _rawbot_team;
-    address[] public exchange_addresses;
-    mapping(address => User) public user;
+    address private _rawbot_team;
+    address[] private exchange_addresses;
+    mapping(address => User) private user;
 
     event OraclizeLog(string _description, uint256 _time);
 
-    uint256 public ETH_PRICE = 0;
-    uint256 public last_price_update = 0;
+    uint256 private ETH_PRICE = 0;
+    uint256 private last_price_update = 0;
     PRICE_CHECKING_STATUS public price_status;
 
     enum PRICE_CHECKING_STATUS {

@@ -12,12 +12,12 @@ contract MerchantManager {
     constructor() public payable {
     }
 
-    function addMerchant() public payable returns (Merchant) {
+    function addMerchant() public payable returns (bool) {
         Merchant merchant = new Merchant(msg.sender);
         merchants[merchant] = msg.sender;
         merchants_index++;
         emit AddMerchant(msg.sender, merchant);
-        return merchant;
+        return true;
     }
 
     function getMerchants() public view returns (uint){
