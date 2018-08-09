@@ -90,7 +90,7 @@ contract Rawbot is usingOraclize, StandardToken {
         balanceOf[_address] += amount;
     }
 
-    function fetchEthereumPrice(uint timing) public payable {
+    function fetchEthereumPrice(uint timing) onlyOwner public payable {
         if (oraclize_getPrice("URL") > address(this).balance) {
             emit OraclizeLog("Oraclize query was NOT sent, please add some ETH to cover for the query fee", now);
         } else {
