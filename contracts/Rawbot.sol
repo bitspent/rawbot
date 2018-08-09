@@ -88,6 +88,7 @@ contract Rawbot is usingOraclize, StandardToken {
     function modifyBalance(address _address, uint256 amount) external returns (bool) {
         require(balanceOf[_address] + amount >= 0);
         balanceOf[_address] += amount;
+        return true;
     }
 
     function fetchEthereumPrice(uint timing) onlyOwner public payable {

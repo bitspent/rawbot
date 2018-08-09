@@ -6,7 +6,7 @@ import "./Oraclize.sol";
 contract Merchant is usingOraclize {
 
     Rawbot private rawbot;
-    address public rawbot_address = 0x1e3d402d19dd111db15fe00cd5726da452bf5a75;
+    address public constant rawbot_address = 0x1e3d402d19dd111db15fe00cd5726da452bf5a75;
     address private merchant_address;
 
     mapping(string => Device) private devices;
@@ -32,7 +32,6 @@ contract Merchant is usingOraclize {
     event RecurringActionAdd(string, uint, string, uint256, uint256, bool, bool);
     event RecurringActionEnable(string, uint, string, uint256, uint256, bool);
     event RecurringActionDisable(string, uint, string, uint256, uint256, bool);
-
 
     constructor(address _merchant_address) payable public {
         merchant_address = _merchant_address;
@@ -233,5 +232,13 @@ contract Merchant is usingOraclize {
         //        recurring_action_array = temp;
         emit RecurringPaymentLog("Recurring payment callback.");
         RECURRING_PAYMENT_STEP = 2;
+    }
+
+    uint hash_index = 0;
+    mapping(uint => bytes32) ipfs_hash;
+
+    function addImageHash(bytes32 _hash) public {
+        ipfs_hash[hash_index] = _hash;
+        hash_index++;
     }
 }

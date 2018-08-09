@@ -1,8 +1,3 @@
-node-slack-cryptobot/
-website_development/
-rawbot-website/
-rawbot-website-backup/
-
 # Logs
 logs
 *.log
