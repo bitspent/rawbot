@@ -6,9 +6,11 @@ import "./Oraclize.sol";
 contract Merchant is usingOraclize {
 
     Rawbot private rawbot;
-    address public constant rawbot_address = 0x1e3d402d19dd111db15fe00cd5726da452bf5a75;
+    address public constant rawbot_address = 0x5238527616882251df1ae2c5353dc6cf0a515fdc;
     address private merchant_address;
+    uint hash_index = 0;
 
+    mapping(uint => string) ipfs_hash;
     mapping(string => Device) private devices;
     mapping(uint256 => ActionHistory[]) private action_history;
     mapping(uint256 => ActionHistory[]) private recurring_action_history;
@@ -32,6 +34,8 @@ contract Merchant is usingOraclize {
     event RecurringActionAdd(string, uint, string, uint256, uint256, bool, bool);
     event RecurringActionEnable(string, uint, string, uint256, uint256, bool);
     event RecurringActionDisable(string, uint, string, uint256, uint256, bool);
+
+    event AddIPFSHash(uint, string);
 
     constructor(address _merchant_address) payable public {
         merchant_address = _merchant_address;
@@ -209,36 +213,29 @@ contract Merchant is usingOraclize {
         return rawbot.getBalance(_address);
     }
 
-    function __callback(bytes32 myid, string result) {
-        if (msg.sender != oraclize_cbAddress()) revert();
-        RA[] temp;
-        for (uint i = 0; i < recurring_action_array.length; i++) {
-            require(recurring_action_history[raid][rahid].id == raid);
-            string device_name = recurring_action_array[i].device_name;
-            uint256 raid = recurring_action_array[i].recurring_action_id;
-            uint256 rahid = recurring_action_array[i].recurring_action_history_id;
-
-            uint _days = devices[device_name].device_recurring_actions[raid]._days * 86400;
-            uint _time = recurring_action_history[raid][rahid].time;
-
-            uint difference = now - (_days + _time);
-            if (difference > 0) {
-                disableRecurringAction(device_name, raid);
-            } else {
-                //                temp.push(RA(device_name, raid, rahid, true));
-            }
-        }
-
-        //        recurring_action_array = temp;
-        emit RecurringPaymentLog("Recurring payment callback.");
-        RECURRING_PAYMENT_STEP = 2;
+    function addImageHash(string _hash) public {
+        ipfs_hash[hash_index] = _hash;
+        emit AddIPFSHash(hash_index, _hash);
+        hash_index++;
     }
 
-    uint hash_index = 0;
-    mapping(uint => bytes32) ipfs_hash;
+    function __callback(bytes32 myid, string result) {
+        if (msg.sender != oraclize_cbAddress()) revert();
+        //        for (uint i = 0; i < recurring_action_array.length; i++) {
+        //            require(recurring_action_history[raid][rahid].id == raid);
+        //            string device_name = recurring_action_array[i].device_name;
+        //            uint256 raid = recurring_action_array[i].recurring_action_id;
+        //            uint256 rahid = recurring_action_array[i].recurring_action_history_id;
+        //
+        //            uint _days = devices[device_name].device_recurring_actions[raid]._days * 86400;
+        //            uint _time = recurring_action_history[raid][rahid].time;
+        //            uint difference = now - (_days + _time);
+        //            if (difference > 0) {
+        //                disableRecurringAction(device_name, raid);
+        //            }
+        //            RECURRING_PAYMENT_STEP++;
+        //        }
 
-    function addImageHash(bytes32 _hash) public {
-        ipfs_hash[hash_index] = _hash;
-        hash_index++;
+        //        emit RecurringPaymentLog("Recurring payment callback.");
     }
 }

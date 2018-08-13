@@ -38,7 +38,7 @@ contract Rawbot is usingOraclize, StandardToken {
         balanceOf[_rawbot_team] = (totalSupply * 1) / 5;
         totalSupply -= balanceOf[_rawbot_team];
         price_status = PRICE_CHECKING_STATUS.NEEDED;
-        // fetchEthereumPrice(15);
+        //        fetchEthereumPrice(15);
         user[msg.sender].available = true;
         user[msg.sender].allowed_to_exchange += 4000000;
     }

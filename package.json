@@ -1,0 +1,25 @@
+{
+  "name": "rawbot",
+  "version": "1.0.0",
+  "description": "[![N|Solid](http://rawbot.org/img/rawbot_logo_colored.png)](http://rawbot.org)",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rawbotcoin/rawbot.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rawbotcoin/rawbot/issues"
+  },
+  "homepage": "https://github.com/rawbotcoin/rawbot#readme",
+  "dependencies": {
+    "truffle-hdwallet-provider": "0.0.6"
+  }
+}
