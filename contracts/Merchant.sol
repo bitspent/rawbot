@@ -87,7 +87,7 @@ contract Merchant is usingOraclize {
 
     //"ABC", "Raspberry PI 3"
     function addDevice(string device_serial_number, string device_name) public payable returns (bool){
-//        require(merchant_address == msg.sender, "Only merchant can add devices.");
+        //        require(merchant_address == msg.sender, "Only merchant can add devices.");
         require(devices[device_serial_number].available == false);
         devices[device_serial_number].device_name = device_name;
         devices[device_serial_number].available = true;
@@ -100,7 +100,7 @@ contract Merchant is usingOraclize {
 
     //"ABC", "Open", 20, 20, true
     function addAction(string device_serial_number, string action_name, uint256 action_price, uint256 action_duration, bool refundable) public payable returns (bool){
-//        require(merchant_address == msg.sender);
+        //        require(merchant_address == msg.sender);
         require(devices[device_serial_number].available == true, "Device serial number is not available");
         devices[device_serial_number].device_actions.push(Action(devices[device_serial_number].device_actions.length, action_name, action_price, action_duration, refundable, true));
         emit ActionAdd(device_serial_number, devices[device_serial_number].device_actions.length, action_name, action_price, action_duration, refundable, true);
@@ -109,7 +109,7 @@ contract Merchant is usingOraclize {
 
     //"ABC", "Open", 20, 20, true
     function addRecurringAction(string device_serial_number, string action_name, uint256 action_price, uint256 _days, bool refundable) public payable returns (bool){
-//        require(merchant_address == msg.sender);
+        //        require(merchant_address == msg.sender);
         require(devices[device_serial_number].available == true, "Device serial number is not available");
         devices[device_serial_number].device_recurring_actions.push(RecurringAction(devices[device_serial_number].device_recurring_actions.length, action_name, action_price, _days, refundable, true));
         emit ActionAdd(device_serial_number, devices[device_serial_number].device_recurring_actions.length, action_name, action_price, _days, refundable, true);
@@ -167,7 +167,7 @@ contract Merchant is usingOraclize {
 
     //"ABC", 0, 0
     function refund(string device_serial_number, uint256 action_id, uint _action_history_id) payable public returns (bool) {
-//        require(msg.sender == merchant_address);
+        //        require(msg.sender == merchant_address);
         require(devices[device_serial_number].available == true);
         require(devices[device_serial_number].device_actions[action_id].available == true);
         require(devices[device_serial_number].device_actions[action_id].refundable == true);
