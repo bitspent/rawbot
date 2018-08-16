@@ -1,5 +1,5 @@
 var Merchant = artifacts.require("./Merchant.sol");
 
 module.exports = function (deployer) {
-    deployer.deploy(Merchant, 0x0a9f2077838bb8be19fada5de4832983e319d663);
+    deployer.deploy(Merchant, 0x8a530a1fff67c5aa27730f9b8c8bc11b94c76c2c);
 };

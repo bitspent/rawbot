@@ -8,8 +8,8 @@ contract Merchant is usingOraclize {
     Rawbot private rawbot;
     address public constant rawbot_address = 0x5238527616882251df1ae2c5353dc6cf0a515fdc;
     address private merchant_address;
-    uint hash_index = 0;
-
+    uint public hash_index = 0;
+    uint public devices_amount = 0;
     mapping(uint => string) ipfs_hash;
     mapping(string => Device) private devices;
     mapping(uint256 => ActionHistory[]) private action_history;
@@ -27,6 +27,8 @@ contract Merchant is usingOraclize {
     event RecurrentRefundAutomatic(uint, uint, uint, uint);
 
     event RecurringPaymentLog(string);
+
+    event DeviceAdd(string, string, bool);
     event ActionAdd(string, uint, string, uint256, uint256, bool, bool);
     event ActionEnable(string, uint, string, uint256, uint256, bool);
     event ActionDisable(string, uint, string, uint256, uint256, bool);
@@ -85,18 +87,20 @@ contract Merchant is usingOraclize {
 
     //"ABC", "Raspberry PI 3"
     function addDevice(string device_serial_number, string device_name) public payable returns (bool){
-        //        require(merchant_address == msg.sender, "Only merchant can add devices.");
+//        require(merchant_address == msg.sender, "Only merchant can add devices.");
         require(devices[device_serial_number].available == false);
         devices[device_serial_number].device_name = device_name;
         devices[device_serial_number].available = true;
         device_serial_numbers.push(device_serial_number);
         device_names.push(device_name);
+        emit DeviceAdd(device_serial_number, device_name, true);
+        devices_amount++;
         return true;
     }
 
     //"ABC", "Open", 20, 20, true
     function addAction(string device_serial_number, string action_name, uint256 action_price, uint256 action_duration, bool refundable) public payable returns (bool){
-        //        require(merchant_address == msg.sender);
+//        require(merchant_address == msg.sender);
         require(devices[device_serial_number].available == true, "Device serial number is not available");
         devices[device_serial_number].device_actions.push(Action(devices[device_serial_number].device_actions.length, action_name, action_price, action_duration, refundable, true));
         emit ActionAdd(device_serial_number, devices[device_serial_number].device_actions.length, action_name, action_price, action_duration, refundable, true);
@@ -105,7 +109,7 @@ contract Merchant is usingOraclize {
 
     //"ABC", "Open", 20, 20, true
     function addRecurringAction(string device_serial_number, string action_name, uint256 action_price, uint256 _days, bool refundable) public payable returns (bool){
-        //        require(merchant_address == msg.sender);
+//        require(merchant_address == msg.sender);
         require(devices[device_serial_number].available == true, "Device serial number is not available");
         devices[device_serial_number].device_recurring_actions.push(RecurringAction(devices[device_serial_number].device_recurring_actions.length, action_name, action_price, _days, refundable, true));
         emit ActionAdd(device_serial_number, devices[device_serial_number].device_recurring_actions.length, action_name, action_price, _days, refundable, true);
@@ -131,12 +135,12 @@ contract Merchant is usingOraclize {
         } else {
             require(devices[device_serial_number].available == true, "Device serial number is not available");
             require(devices[device_serial_number].device_recurring_actions[action_id].available == true, "Device action id is not available");
-            require(rawbot.getBalance(msg.sender) >= devices[device_serial_number].device_recurring_actions[action_id].price, "User doesn't have enough balance");
+            // require(rawbot.getBalance(msg.sender) >= devices[device_serial_number].device_recurring_actions[action_id].price, "User doesn't have enough balance");
             recurring_action_history[action_id].push(ActionHistory(msg.sender, action_id, now, true, false, true));
             recurring_action_array.push(RA(device_serial_number, action_id, recurring_action_history[action_id].length - 1, true));
-            rawbot.modifyBalance(msg.sender, - devices[device_serial_number].device_recurring_actions[action_id].price);
-            rawbot.modifyBalance(merchant_address, devices[device_serial_number].device_recurring_actions[action_id].price);
-            oraclize_query(devices[device_serial_number].device_recurring_actions[action_id]._days * 60 * 60 * 24, "URL", "");
+            // rawbot.modifyBalance(msg.sender, - devices[device_serial_number].device_recurring_actions[action_id].price);
+            // rawbot.modifyBalance(merchant_address, devices[device_serial_number].device_recurring_actions[action_id].price);
+            // oraclize_query(devices[device_serial_number].device_recurring_actions[action_id]._days * 60 * 60 * 24, "URL", "");
             RECURRING_PAYMENT_STEP = 1;
             emit ActionEnable(device_serial_number, action_id, devices[device_serial_number].device_recurring_actions[action_id].name, devices[device_serial_number].device_recurring_actions[action_id].price, devices[device_serial_number].device_recurring_actions[action_id]._days, true);
             return true;
@@ -163,7 +167,7 @@ contract Merchant is usingOraclize {
 
     //"ABC", 0, 0
     function refund(string device_serial_number, uint256 action_id, uint _action_history_id) payable public returns (bool) {
-        //        require(msg.sender == merchant_address);
+//        require(msg.sender == merchant_address);
         require(devices[device_serial_number].available == true);
         require(devices[device_serial_number].device_actions[action_id].available == true);
         require(devices[device_serial_number].device_actions[action_id].refundable == true);
@@ -221,21 +225,21 @@ contract Merchant is usingOraclize {
 
     function __callback(bytes32 myid, string result) {
         if (msg.sender != oraclize_cbAddress()) revert();
-        //        for (uint i = 0; i < recurring_action_array.length; i++) {
-        //            require(recurring_action_history[raid][rahid].id == raid);
-        //            string device_name = recurring_action_array[i].device_name;
-        //            uint256 raid = recurring_action_array[i].recurring_action_id;
-        //            uint256 rahid = recurring_action_array[i].recurring_action_history_id;
-        //
-        //            uint _days = devices[device_name].device_recurring_actions[raid]._days * 86400;
-        //            uint _time = recurring_action_history[raid][rahid].time;
-        //            uint difference = now - (_days + _time);
-        //            if (difference > 0) {
-        //                disableRecurringAction(device_name, raid);
-        //            }
-        //            RECURRING_PAYMENT_STEP++;
-        //        }
+        for (uint i = 0; i < recurring_action_array.length; i++) {
+            require(recurring_action_history[raid][rahid].id == raid);
+            string device_name = recurring_action_array[i].device_name;
+            uint256 raid = recurring_action_array[i].recurring_action_id;
+            uint256 rahid = recurring_action_array[i].recurring_action_history_id;
 
-        //        emit RecurringPaymentLog("Recurring payment callback.");
+            uint _days = devices[device_name].device_recurring_actions[raid]._days * 86400;
+            uint _time = recurring_action_history[raid][rahid].time;
+            uint difference = now - (_days + _time);
+            if (difference > 0) {
+                disableRecurringAction(device_name, raid);
+            }
+            RECURRING_PAYMENT_STEP++;
+        }
+
+        emit RecurringPaymentLog("Recurring payment callback.");
     }
 }
