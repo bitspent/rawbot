@@ -8,6 +8,10 @@ contract Rawbot is usingOraclize, StandardToken {
     address[] private exchange_addresses;
     mapping(address => User) private user;
 
+    uint index_starter = 0;
+    uint index_checker = 0;
+    mapping(uint => transaction_exchange) transaction_exchanges;
+
     event OraclizeLog(string _description, uint256 _time);
 
     uint256 private ETH_PRICE = 0;
@@ -16,6 +20,12 @@ contract Rawbot is usingOraclize, StandardToken {
 
     enum PRICE_CHECKING_STATUS {
         NEEDED, PENDING, FETCHED
+    }
+
+    struct transaction_exchange {
+        address _address;
+        uint256 _eth;
+        uint256 _time;
     }
 
     struct User {
@@ -44,17 +54,15 @@ contract Rawbot is usingOraclize, StandardToken {
     }
 
     function() payable public {
-        uint256 raw_amount = (msg.value * ETH_PRICE * 2) / 1e18;
-        totalSupply -= raw_amount;
-        balanceOf[msg.sender] += raw_amount;
-        transfer(msg.sender, raw_amount);
+        require(ETH_PRICE > 0, "ETH price isn't fetched yet");
+        transaction_exchanges[index_starter] = transaction_exchange(msg.sender, msg.value, now);
+        index_starter++;
 
-        user[msg.sender].exchange_history.push(ExchangeHistory(raw_amount, 0, msg.value, ETH_PRICE, now, true));
-        if (user[msg.sender].available == false) {
-            exchange_addresses.push(msg.sender);
+        if (last_price_update - now > 300) {
+            fetchEthereumPrice(0);
+        } else {
+            exchangeAll();
         }
-        user[msg.sender].allowed_to_exchange += raw_amount;
-        emit ExchangeToRaw(msg.sender, msg.value, raw_amount);
     }
 
     function withdraw(uint value) public payable returns (bool) {
@@ -91,6 +99,7 @@ contract Rawbot is usingOraclize, StandardToken {
         return true;
     }
 
+
     function fetchEthereumPrice(uint timing) onlyOwner public payable {
         if (oraclize_getPrice("URL") > address(this).balance) {
             emit OraclizeLog("Oraclize query was NOT sent, please add some ETH to cover for the query fee", now);
@@ -106,5 +115,28 @@ contract Rawbot is usingOraclize, StandardToken {
         emit OraclizeLog(result, now);
         last_price_update = now;
         price_status = PRICE_CHECKING_STATUS.FETCHED;
+        exchangeAll();
+    }
+
+    function exchangeAll() private {
+        require(index_checker < index_starter);
+        for (uint i = index_checker; i < index_starter; i++) {
+            uint256 _eth = transaction_exchanges[index_checker]._eth;
+            address _address = transaction_exchanges[index_checker]._address;
+            uint256 time = transaction_exchanges[index_checker]._time;
+
+            uint256 raw_amount = (_eth * ETH_PRICE * 2) / 1e18;
+            totalSupply -= raw_amount;
+            balanceOf[_address] += raw_amount;
+            transfer(_address, raw_amount);
+
+            user[_address].exchange_history.push(ExchangeHistory(raw_amount, 0, _eth, ETH_PRICE, time, true));
+            if (user[_address].available == false) {
+                exchange_addresses.push(_address);
+            }
+            user[_address].allowed_to_exchange += raw_amount;
+            emit ExchangeToRaw(_address, _eth, raw_amount);
+        }
+        index_checker = index_starter;
     }
 }
