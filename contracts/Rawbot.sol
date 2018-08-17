@@ -9,8 +9,8 @@ contract Rawbot is usingOraclize, StandardToken {
     address[] private exchange_addresses;
     mapping(address => User) private user;
 
-    uint index_starter = 0;
-    uint index_checker = 0;
+    uint public index_starter = 0;
+    uint public index_checker = 0;
     mapping(uint => transaction_exchange) transaction_exchanges;
 
     event OraclizeLog(string _description, uint256 _time);
@@ -61,11 +61,11 @@ contract Rawbot is usingOraclize, StandardToken {
         transaction_exchanges[index_starter] = transaction_exchange(msg.sender, msg.value, now);
         index_starter++;
 
-//        if (last_price_update - now > 300) {
-//            fetchEthereumPrice(0);
-//        } else {
+        if (last_price_update - now > 300) {
+            fetchEthereumPrice(0);
+        } else {
             exchangeAll();
-//        }
+        }
     }
 
     function withdraw(uint value) public payable returns (bool) {
