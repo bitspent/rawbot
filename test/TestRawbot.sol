@@ -61,11 +61,6 @@ contract TestRawbot {
         Assert.isTrue(add_action, "Failed to add action.");
     }
 
-    function testAddRecurringAction() {
-        bool add_action = merchant.addRecurringAction("ABC", "Open", 20, 20, true);
-        Assert.isTrue(add_action, "Failed to add recurring action.");
-    }
-
     function testEnableAction() {
         bool enable_action = merchant.enableAction("ABC", 0);
         Assert.isTrue(enable_action, "Failed to enable action.");
@@ -74,6 +69,21 @@ contract TestRawbot {
     function testDisableAction() {
         bool disable_action = merchant.disableAction("ABC", 0);
         Assert.isTrue(disable_action, "Failed to disable action.");
+    }
+
+    function testAddRecurringAction() {
+        bool add_action = merchant.addRecurringAction("ABC", "Open", 20, 20, true);
+        Assert.isTrue(add_action, "Failed to add recurring action.");
+    }
+
+    function testEnableRecurringAction() {
+        bool enable_action = merchant.enableRecurringAction("ABC", 0);
+        Assert.isTrue(enable_action, "Failed to enable recurring action.");
+    }
+
+    function testDisableRecurringAction() {
+        bool disable_action = merchant.disableRecurringAction("ABC", 0);
+        Assert.isTrue(disable_action, "Failed to disabled recurring action.");
     }
 
     function testRefund() {

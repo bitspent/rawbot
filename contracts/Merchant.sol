@@ -131,21 +131,21 @@ contract Merchant is usingOraclize {
 
     //"ABC", 0
     function enableRecurringAction(string device_serial_number, uint256 action_id) public payable returns (bool success) {
-        if (oraclize_getPrice("URL") > address(this).balance) {
-            return false;
-        } else {
-            require(devices[device_serial_number].available == true, "Device serial number is not available");
-            require(devices[device_serial_number].device_recurring_actions[action_id].available == true, "Device action id is not available");
-            //            require(rawbot.getBalance(msg.sender) >= devices[device_serial_number].device_recurring_actions[action_id].price, "User doesn't have enough balance");
-            recurring_action_history[action_id].push(ActionHistory(msg.sender, action_id, now, true, false, true));
-            recurring_action_array.push(RA(device_serial_number, action_id, recurring_action_history[action_id].length - 1, true));
-            // rawbot.modifyBalance(msg.sender, - devices[device_serial_number].device_recurring_actions[action_id].price);
-            // rawbot.modifyBalance(merchant_address, devices[device_serial_number].device_recurring_actions[action_id].price);
-            // oraclize_query(devices[device_serial_number].device_recurring_actions[action_id]._days * 60 * 60 * 24, "URL", "");
-            RECURRING_PAYMENT_STEP = 1;
-            emit ActionEnable(device_serial_number, action_id, devices[device_serial_number].device_recurring_actions[action_id].name, devices[device_serial_number].device_recurring_actions[action_id].price, devices[device_serial_number].device_recurring_actions[action_id]._days, true);
-            return true;
-        }
+        //        if (oraclize_getPrice("URL") > address(this).balance) {
+        //            return false;
+        //        } else {
+        require(devices[device_serial_number].available == true, "Device serial number is not available");
+        require(devices[device_serial_number].device_recurring_actions[action_id].available == true, "Device action id is not available");
+        //            require(rawbot.getBalance(msg.sender) >= devices[device_serial_number].device_recurring_actions[action_id].price, "User doesn't have enough balance");
+        recurring_action_history[action_id].push(ActionHistory(msg.sender, action_id, now, true, false, true));
+        recurring_action_array.push(RA(device_serial_number, action_id, recurring_action_history[action_id].length - 1, true));
+        // rawbot.modifyBalance(msg.sender, - devices[device_serial_number].device_recurring_actions[action_id].price);
+        // rawbot.modifyBalance(merchant_address, devices[device_serial_number].device_recurring_actions[action_id].price);
+        //            oraclize_query(devices[device_serial_number].device_recurring_actions[action_id]._days * 60 * 60 * 24, "URL", "");
+        RECURRING_PAYMENT_STEP = 1;
+        emit ActionEnable(device_serial_number, action_id, devices[device_serial_number].device_recurring_actions[action_id].name, devices[device_serial_number].device_recurring_actions[action_id].price, devices[device_serial_number].device_recurring_actions[action_id]._days, true);
+        return true;
+        //        }
     }
 
     //"ABC", 0
@@ -194,28 +194,12 @@ contract Merchant is usingOraclize {
         return true;
     }
 
-    function getActionPrice(string device_serial_number, uint256 action_id) public view returns (uint) {
-        return devices[device_serial_number].device_actions[action_id].price;
-    }
-
-    function isRefundable(string device_serial_number, uint256 action_id) public view returns (bool) {
-        return devices[device_serial_number].device_actions[action_id].refundable;
-    }
-
-    function getMerchantAddress() public view returns (address) {
-        return merchant_address;
-    }
-
     function withdrawFromDevice(address device_address, uint256 value) public payable returns (bool success) {
         require(merchant_address == msg.sender);
         require(rawbot.getBalance(device_address) >= value);
         rawbot.modifyBalance(device_address, - value);
         rawbot.modifyBalance(msg.sender, value);
         return true;
-    }
-
-    function getUserBalance(address _address) public view returns (uint256){
-        return rawbot.getBalance(_address);
     }
 
     function addImageHash(string _hash) public returns (bool) {
@@ -243,5 +227,21 @@ contract Merchant is usingOraclize {
         }
 
         emit RecurringPaymentLog("Recurring payment callback.");
+    }
+
+    function getActionPrice(string device_serial_number, uint256 action_id) public view returns (uint) {
+        return devices[device_serial_number].device_actions[action_id].price;
+    }
+
+    function isRefundable(string device_serial_number, uint256 action_id) public view returns (bool) {
+        return devices[device_serial_number].device_actions[action_id].refundable;
+    }
+
+    function getMerchantAddress() public view returns (address) {
+        return merchant_address;
+    }
+
+    function getUserBalance(address _address) public view returns (uint256){
+        return rawbot.getBalance(_address);
     }
 }
