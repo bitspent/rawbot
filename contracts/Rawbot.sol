@@ -3,6 +3,7 @@ pragma solidity ^0.4.24;
 import "./StandardToken.sol";
 import "./Oraclize.sol";
 import "./MerchantManager.sol";
+import "./Merchant.sol";
 
 contract Rawbot is usingOraclize, StandardToken {
 

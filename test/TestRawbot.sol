@@ -34,9 +34,13 @@ contract TestRawbot {
         Assert.isTrue(rawbot.getBalance(msg.sender) >= value, "User has less raw coins than the value requested.");
     }
 
-//    function testSetContractManager() {
-//        Assert.isTrue(rawbot.setContractMerchantManager(merchant_manager), "User doesn't have privileges.");
-//    }
+    function testEthereumPrice(){
+        Assert.equal(rawbot.getEthereumPrice(), 500, "Ethereum price isn't equal 500");
+    }
+
+    //    function testSetContractManager() {
+    //        Assert.isTrue(rawbot.setContractMerchantManager(merchant_manager), "User doesn't have privileges.");
+    //    }
 
     function testAddMerchant() public {
         //        Assert.isTrue(, "Failed to add merchant");
@@ -57,6 +61,11 @@ contract TestRawbot {
         Assert.isTrue(add_action, "Failed to add action.");
     }
 
+    function testAddRecurringAction() {
+        bool add_action = merchant.addRecurringAction("ABC", "Open", 20, 20, true);
+        Assert.isTrue(add_action, "Failed to add recurring action.");
+    }
+
     function testEnableAction() {
         bool enable_action = merchant.enableAction("ABC", 0);
         Assert.isTrue(enable_action, "Failed to enable action.");
@@ -75,5 +84,10 @@ contract TestRawbot {
     function testRefundAutomatic() {
         bool refundAutomatic = merchant.refundAutomatic("ABC", 0, 0);
         Assert.isTrue(refundAutomatic, "Failed to automatically refund action.");
+    }
+
+    function testAddHash() {
+        bool addHash = merchant.addImageHash("abcdefg");
+        Assert.isTrue(addHash, "Failed to add IPFS hash.");
     }
 }
