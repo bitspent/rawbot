@@ -2,6 +2,7 @@ pragma solidity ^0.4.24;
 
 import "./StandardToken.sol";
 import "./Oraclize.sol";
+import "./MerchantManager.sol";
 
 contract Rawbot is usingOraclize, StandardToken {
     address private _rawbot_team;
@@ -17,6 +18,8 @@ contract Rawbot is usingOraclize, StandardToken {
     uint256 private ETH_PRICE = 0;
     uint256 private last_price_update = 0;
     PRICE_CHECKING_STATUS public price_status;
+
+    address private ContractMerchantManagerAddress;
 
     enum PRICE_CHECKING_STATUS {
         NEEDED, PENDING, FETCHED
@@ -77,28 +80,13 @@ contract Rawbot is usingOraclize, StandardToken {
         return true;
     }
 
-    function getAddresses() view public returns (address[]) {
-        return exchange_addresses;
-    }
-
-    function getExchangeLeftOf(address _address) view public returns (uint256){
-        return user[_address].allowed_to_exchange;
-    }
-
-    function getEthereumPrice() public view returns (uint) {
-        return ETH_PRICE;
-    }
-
-    function getBalance(address _address) external view returns (uint256){
-        return balanceOf[_address];
-    }
-
     function modifyBalance(address _address, uint256 amount) external returns (bool) {
+        MerchantManager merchantManager = MerchantManager(ContractMerchantManagerAddress);
+        require(merchantManager.hasAccess(msg.sender) == true);
         require(balanceOf[_address] + amount >= 0);
         balanceOf[_address] += amount;
         return true;
     }
-
 
     function fetchEthereumPrice(uint timing) onlyOwner public payable {
         if (oraclize_getPrice("URL") > address(this).balance) {
@@ -116,6 +104,10 @@ contract Rawbot is usingOraclize, StandardToken {
         last_price_update = now;
         price_status = PRICE_CHECKING_STATUS.FETCHED;
         exchangeAll();
+    }
+
+    function setContractMerchantManager(address _address) onlyOwner public {
+        ContractMerchantManagerAddress = _address;
     }
 
     function exchangeAll() private {
@@ -138,5 +130,25 @@ contract Rawbot is usingOraclize, StandardToken {
             emit ExchangeToRaw(_address, _eth, raw_amount);
         }
         index_checker = index_starter;
+    }
+
+    function getContractMerchantManager() public view returns (address) {
+        return ContractMerchantManagerAddress;
+    }
+
+    function getAddresses() view public returns (address[]) {
+        return exchange_addresses;
+    }
+
+    function getExchangeLeftOf(address _address) view public returns (uint256){
+        return user[_address].allowed_to_exchange;
+    }
+
+    function getEthereumPrice() public view returns (uint) {
+        return ETH_PRICE;
+    }
+
+    function getBalance(address _address) external view returns (uint256){
+        return balanceOf[_address];
     }
 }
