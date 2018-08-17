@@ -9,32 +9,32 @@ contract TestRawbot {
     Merchant merchant;
     MerchantManager merchant_manager;
 
-    constructor() {
+    constructor() public {
         rawbot = Rawbot(DeployedAddresses.Rawbot());
         merchant_manager = MerchantManager(DeployedAddresses.MerchantManager());
         merchant = Merchant(DeployedAddresses.Merchant());
     }
 
-    function testGetInitialCoins() {
+    function testGetInitialCoins() public {
         uint expected = 4000000;
         Assert.equal(rawbot.getBalance(tx.origin), expected, "Owner should have 4000000 MetaCoin initially");
     }
 
-    function testAllowedToExchange(){
+    function testAllowedToExchange() public {
         Assert.isTrue(rawbot.getExchangeLeftOf(msg.sender) > 0, "User has zero raw coins to exchange.");
     }
 
-    function testAllowedToExchangeValue(){
+    function testAllowedToExchangeValue() public {
         uint value = 10000;
         Assert.isTrue(rawbot.getExchangeLeftOf(msg.sender) >= value, "User has less raw coins to exchange than the value allowed.");
     }
 
-    function testBalanceMoreThanValueToExchange(){
+    function testBalanceMoreThanValueToExchange() public {
         uint value = 10000;
         Assert.isTrue(rawbot.getBalance(msg.sender) >= value, "User has less raw coins than the value requested.");
     }
 
-    function testEthereumPrice(){
+    function testEthereumPrice() public {
         Assert.equal(rawbot.getEthereumPrice(), 500, "Ethereum price isn't equal 500");
     }
 
@@ -51,32 +51,32 @@ contract TestRawbot {
         Assert.isTrue(merchant_manager.getMerchants() > 0, "Amount of merchants equals zero.");
     }
 
-    function testAddDevice() {
+    function testAddDevice() public {
         bool add_device = merchant.addDevice("ABC", "Raspberry PI 3");
         Assert.isTrue(add_device, "Failed to add device.");
     }
 
-    function testAddAction() {
+    function testAddAction() public {
         bool add_action = merchant.addAction("ABC", "Open", 20, 20, true);
         Assert.isTrue(add_action, "Failed to add action.");
     }
 
-    function testEnableAction() {
+    function testEnableAction() public {
         bool enable_action = merchant.enableAction("ABC", 0);
         Assert.isTrue(enable_action, "Failed to enable action.");
     }
 
-    function testDisableAction() {
+    function testDisableAction() public {
         bool disable_action = merchant.disableAction("ABC", 0);
         Assert.isTrue(disable_action, "Failed to disable action.");
     }
 
-    function testAddRecurringAction() {
+    function testAddRecurringAction() public {
         bool add_action = merchant.addRecurringAction("ABC", "Open", 20, 20, true);
         Assert.isTrue(add_action, "Failed to add recurring action.");
     }
 
-    function testEnableRecurringAction() {
+    function testEnableRecurringAction() public {
         bool enable_action = merchant.enableRecurringAction("ABC", 0);
         Assert.isTrue(enable_action, "Failed to enable recurring action.");
     }
