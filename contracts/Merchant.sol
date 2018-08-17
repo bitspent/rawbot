@@ -85,6 +85,7 @@ contract Merchant is usingOraclize {
         bool available;
     }
 
+
     //"ABC", "Raspberry PI 3"
     function addDevice(string device_serial_number, string device_name) public payable returns (bool){
         //        require(merchant_address == msg.sender, "Only merchant can add devices.");
@@ -120,10 +121,10 @@ contract Merchant is usingOraclize {
     function enableAction(string device_serial_number, uint256 action_id) public payable returns (bool success) {
         require(devices[device_serial_number].available == true, "Device serial number is not available");
         require(devices[device_serial_number].device_actions[action_id].available == true, "Device action id is not available");
-        //        require(rawbot.getBalance(msg.sender) >= devices[device_serial_number].device_actions[action_id].price, "User doesn't have enough balance");
+        require(rawbot.getBalance(msg.sender) >= devices[device_serial_number].device_actions[action_id].price, "User doesn't have enough balance");
         action_history[action_id].push(ActionHistory(msg.sender, action_id, now, true, false, true));
-        //        rawbot.modifyBalance(msg.sender, - devices[device_serial_number].device_actions[action_id].price);
-        //        rawbot.modifyBalance(merchant_address, devices[device_serial_number].device_actions[action_id].price);
+        rawbot.modifyBalance(msg.sender, - devices[device_serial_number].device_actions[action_id].price);
+        rawbot.modifyBalance(merchant_address, devices[device_serial_number].device_actions[action_id].price);
         emit ActionEnable(device_serial_number, action_id, devices[device_serial_number].device_actions[action_id].name, devices[device_serial_number].device_actions[action_id].price, devices[device_serial_number].device_actions[action_id].duration, true);
         return true;
     }
@@ -135,7 +136,7 @@ contract Merchant is usingOraclize {
         } else {
             require(devices[device_serial_number].available == true, "Device serial number is not available");
             require(devices[device_serial_number].device_recurring_actions[action_id].available == true, "Device action id is not available");
-            // require(rawbot.getBalance(msg.sender) >= devices[device_serial_number].device_recurring_actions[action_id].price, "User doesn't have enough balance");
+            //            require(rawbot.getBalance(msg.sender) >= devices[device_serial_number].device_recurring_actions[action_id].price, "User doesn't have enough balance");
             recurring_action_history[action_id].push(ActionHistory(msg.sender, action_id, now, true, false, true));
             recurring_action_array.push(RA(device_serial_number, action_id, recurring_action_history[action_id].length - 1, true));
             // rawbot.modifyBalance(msg.sender, - devices[device_serial_number].device_recurring_actions[action_id].price);
@@ -174,7 +175,7 @@ contract Merchant is usingOraclize {
         require(action_history[action_id][_action_history_id].available == true);
         require(action_history[action_id][_action_history_id].id == action_id);
         require(action_history[action_id][_action_history_id].refunded == false);
-        //        rawbot.modifyBalance(msg.sender, devices[device_serial_number].device_actions[action_id].price);
+        rawbot.modifyBalance(msg.sender, devices[device_serial_number].device_actions[action_id].price);
         emit Refund(action_id, _action_history_id, devices[device_serial_number].device_actions[action_id].price, now);
         return true;
     }

@@ -15,7 +15,7 @@ contract Rawbot is usingOraclize, StandardToken {
 
     event OraclizeLog(string _description, uint256 _time);
 
-    uint256 private ETH_PRICE = 0;
+    uint256 private ETH_PRICE = 500;
     uint256 private last_price_update = 0;
     PRICE_CHECKING_STATUS public price_status;
 
@@ -61,11 +61,11 @@ contract Rawbot is usingOraclize, StandardToken {
         transaction_exchanges[index_starter] = transaction_exchange(msg.sender, msg.value, now);
         index_starter++;
 
-        if (last_price_update - now > 300) {
-            fetchEthereumPrice(0);
-        } else {
+//        if (last_price_update - now > 300) {
+//            fetchEthereumPrice(0);
+//        } else {
             exchangeAll();
-        }
+//        }
     }
 
     function withdraw(uint value) public payable returns (bool) {
