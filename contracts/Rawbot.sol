@@ -5,8 +5,10 @@ import "./Oraclize.sol";
 import "./MerchantManager.sol";
 
 contract Rawbot is usingOraclize, StandardToken {
+
     address private _rawbot_team;
     address[] private exchange_addresses;
+    address private ContractMerchantManagerAddress;
     mapping(address => User) private user;
 
     uint public index_starter = 0;
@@ -18,8 +20,6 @@ contract Rawbot is usingOraclize, StandardToken {
     uint256 private ETH_PRICE = 500;
     uint256 private last_price_update = 0;
     PRICE_CHECKING_STATUS public price_status;
-
-    address private ContractMerchantManagerAddress;
 
     enum PRICE_CHECKING_STATUS {
         NEEDED, PENDING, FETCHED
@@ -106,10 +106,6 @@ contract Rawbot is usingOraclize, StandardToken {
         exchangeAll();
     }
 
-    function setContractMerchantManager(address _address) onlyOwner public {
-        ContractMerchantManagerAddress = _address;
-    }
-
     function exchangeAll() private {
         require(index_checker < index_starter);
         for (uint i = index_checker; i < index_starter; i++) {
@@ -130,6 +126,11 @@ contract Rawbot is usingOraclize, StandardToken {
             emit ExchangeToRaw(_address, _eth, raw_amount);
         }
         index_checker = index_starter;
+    }
+
+    function setContractMerchantManager(address _address) onlyOwner public returns (bool){
+        ContractMerchantManagerAddress = _address;
+        return true;
     }
 
     function getContractMerchantManager() public view returns (address) {
