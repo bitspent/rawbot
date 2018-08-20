@@ -1,5 +1,5 @@
-var Merchant = artifacts.require("./Merchant.sol");
+var Device = artifacts.require("./Device.sol");
 
 module.exports = function (deployer) {
-    deployer.deploy(Merchant, 0x8a530a1fff67c5aa27730f9b8c8bc11b94c76c2c);
+    deployer.deploy(Device, "0x443ead827a0efb1f387d92fa088099ab12c5f25a", "ABC", "Raspberry PI 3");
 };

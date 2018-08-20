@@ -1,5 +1,5 @@
-var MerchantManager = artifacts.require("./MerchantManager.sol");
+var DeviceManager = artifacts.require("./DeviceManager.sol");
 
 module.exports = function (deployer) {
-    deployer.deploy(MerchantManager);
+    deployer.deploy(DeviceManager);
 };

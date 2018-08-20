@@ -3,21 +3,23 @@ pragma solidity ^0.4.0;
 import "truffle/Assert.sol";
 import "truffle/DeployedAddresses.sol";
 import "../contracts/Rawbot.sol";
+import "../contracts/Device.sol";
+import "../contracts/DeviceManager.sol";
 
 contract TestRawbot {
     Rawbot rawbot;
-    Merchant merchant;
-    MerchantManager merchant_manager;
+    Device device;
+    DeviceManager device_manager;
 
     constructor() public {
         rawbot = Rawbot(DeployedAddresses.Rawbot());
-        merchant_manager = MerchantManager(DeployedAddresses.MerchantManager());
-        merchant = Merchant(DeployedAddresses.Merchant());
+        device_manager = DeviceManager(DeployedAddresses.DeviceManager());
+        device = Device(DeployedAddresses.Device());
     }
 
     function testGetInitialCoins() public {
         uint expected = 4000000;
-        Assert.equal(rawbot.getBalance(tx.origin), expected, "Owner should have 4000000 MetaCoin initially");
+        Assert.equal(rawbot.getBalance(tx.origin) / 1e18, expected, "Owner should have 4000000 MetaCoin initially");
     }
 
     function testAllowedToExchange() public {
@@ -34,70 +36,73 @@ contract TestRawbot {
         Assert.isTrue(rawbot.getBalance(msg.sender) >= value, "User has less raw coins than the value requested.");
     }
 
+    function testModifyValuePositive() public {
+        uint value = 10000;
+        bool modified = rawbot.modifyBalance(msg.sender, value);
+        Assert.equal(rawbot.getBalance(msg.sender), 4010000 * 1e18, "Wrong number");
+        //        Assert.isTrue(modified, "Failed to modify balance");
+    }
+
     function testEthereumPrice() public {
         Assert.equal(rawbot.getEthereumPrice(), 500, "Ethereum price isn't equal 500");
     }
 
     //    function testSetContractManager() {
-    //        Assert.isTrue(rawbot.setContractMerchantManager(merchant_manager), "User doesn't have privileges.");
+    //        Assert.isTrue(rawbot.setContractdeviceManager(device_manager), "User doesn't have privileges.");
     //    }
 
-    function testAddMerchant() public {
-        //        Assert.isTrue(, "Failed to add merchant");
-        merchant = Merchant(merchant_manager.addMerchant());
-    }
-
-    function testMerchantsAmount() public {
-        Assert.isTrue(merchant_manager.getMerchants() > 0, "Amount of merchants equals zero.");
-    }
-
     function testAddDevice() public {
-        bool add_device = merchant.addDevice("ABC", "Raspberry PI 3");
-        Assert.isTrue(add_device, "Failed to add device.");
+        //        Assert.isTrue(, "Failed to add device");
+        bool device_added = device_manager.addDevice("ABC", "Raspberry PI 3");
+        Assert.isTrue(device_added, "Failed to add device.");
+    }
+
+    function testdevicesAmount() public {
+        Assert.isTrue(device_manager.getDevices().length > 0, "Amount of devices equals zero.");
     }
 
     function testAddAction() public {
-        bool add_action = merchant.addAction("ABC", "Open", 20, 20, true);
+        bool add_action = device.addAction("ABC", "Open", 20, 20, true);
         Assert.isTrue(add_action, "Failed to add action.");
     }
 
     function testEnableAction() public {
-        bool enable_action = merchant.enableAction("ABC", 0);
+        bool enable_action = device.enableAction("ABC", 0);
         Assert.isTrue(enable_action, "Failed to enable action.");
     }
 
     function testDisableAction() public {
-        bool disable_action = merchant.disableAction("ABC", 0);
+        bool disable_action = device.disableAction("ABC", 0);
         Assert.isTrue(disable_action, "Failed to disable action.");
     }
 
     function testAddRecurringAction() public {
-        bool add_action = merchant.addRecurringAction("ABC", "Open", 20, 20, true);
+        bool add_action = device.addRecurringAction("ABC", "Open", 20, 20, true);
         Assert.isTrue(add_action, "Failed to add recurring action.");
     }
 
     function testEnableRecurringAction() public {
-        bool enable_action = merchant.enableRecurringAction("ABC", 0);
+        bool enable_action = device.enableRecurringAction("ABC", 0);
         Assert.isTrue(enable_action, "Failed to enable recurring action.");
     }
 
     function testDisableRecurringAction() {
-        bool disable_action = merchant.disableRecurringAction("ABC", 0);
+        bool disable_action = device.disableRecurringAction("ABC", 0);
         Assert.isTrue(disable_action, "Failed to disabled recurring action.");
     }
 
     function testRefund() {
-        bool refund = merchant.refund("ABC", 0, 0);
+        bool refund = device.refund("ABC", 0, 0);
         Assert.isTrue(refund, "Failed to refund action.");
     }
 
     function testRefundAutomatic() {
-        bool refundAutomatic = merchant.refundAutomatic("ABC", 0, 0);
+        bool refundAutomatic = device.refundAutomatic("ABC", 0, 0);
         Assert.isTrue(refundAutomatic, "Failed to automatically refund action.");
     }
 
     function testAddHash() {
-        bool addHash = merchant.addImageHash("abcdefg");
+        bool addHash = device.addImageHash("abcdefg");
         Assert.isTrue(addHash, "Failed to add IPFS hash.");
     }
 }

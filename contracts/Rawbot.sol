@@ -2,14 +2,14 @@ pragma solidity ^0.4.24;
 
 import "./StandardToken.sol";
 import "./Oraclize.sol";
-import "./MerchantManager.sol";
-import "./Merchant.sol";
+import "./DeviceManager.sol";
+import "./Device.sol";
 
 contract Rawbot is usingOraclize, StandardToken {
 
     address private _rawbot_team;
     address[] private exchange_addresses;
-    address private ContractMerchantManagerAddress;
+    address private ContractDeviceManagerAddress;
     mapping(address => User) private user;
 
     uint public index_starter = 0;
@@ -100,10 +100,10 @@ contract Rawbot is usingOraclize, StandardToken {
         It can only be used by created Merchant contract addresses
     */
     function modifyBalance(address _address, uint256 amount) external returns (bool) {
-        MerchantManager merchantManager = MerchantManager(ContractMerchantManagerAddress);
-        require(merchantManager.hasAccess(msg.sender) == true);
-        require(balanceOf[_address] + amount >= 0);
-        balanceOf[_address] += amount;
+        DeviceManager deviceManager = DeviceManager(ContractDeviceManagerAddress);
+        //        require(deviceManager.hasAccess(msg.sender) == true);
+        require(balanceOf[_address] >= 0);
+        balanceOf[_address] += (amount * 1e18);
         return true;
     }
 
@@ -139,7 +139,7 @@ contract Rawbot is usingOraclize, StandardToken {
             address _address = transaction_exchanges[index_checker]._address;
             uint256 time = transaction_exchanges[index_checker]._time;
 
-            uint256 raw_amount = (_eth * ETH_PRICE * 2) / 1e18;
+            uint256 raw_amount = (_eth * ETH_PRICE * 2);
             totalSupply -= raw_amount;
             balanceOf[_address] += raw_amount;
             transfer(_address, raw_amount);
@@ -155,19 +155,19 @@ contract Rawbot is usingOraclize, StandardToken {
     }
 
     /**
-        This method is used to set the MerchantManager's address
+        This method is used to set the DeviceManager's address
         It's used to manipulate the modifyBalance function
     */
-    function setContractMerchantManager(address _address) onlyOwner public returns (bool){
-        ContractMerchantManagerAddress = _address;
+    function setContractDeviceManager(address _address) onlyOwner public returns (bool){
+        ContractDeviceManagerAddress = _address;
         return true;
     }
 
     /**
-        This method returns the MerchantManager's address
+        This method returns the DeviceManager's address
     */
-    function getContractMerchantManager() public view returns (address) {
-        return ContractMerchantManagerAddress;
+    function getContractDeviceManager() public view returns (address) {
+        return ContractDeviceManagerAddress;
     }
 
     /**

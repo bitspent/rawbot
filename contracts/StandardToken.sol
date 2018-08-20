@@ -6,7 +6,7 @@ import "./Owned.sol";
 contract StandardToken is Owned {
     string public name;
     string public symbol;
-    uint8 public decimals = 0;
+    uint8 public decimals = 18;
     uint256 public totalSupply;
     uint256 public initSupply;
 
