@@ -47,10 +47,10 @@ contract Rawbot is usingOraclize, StandardToken {
     constructor() StandardToken(20000000, "Rawbot Test 1", "TWR") public payable {
         _rawbot_team = msg.sender;
         price_status = PRICE_CHECKING_STATUS.NEEDED;
-        //        balanceOf[_rawbot_team] = (totalSupply * 1) / 5;
-        //        totalSupply -= balanceOf[_rawbot_team];
-        //        user[msg.sender].available = true;
-        //        user[msg.sender].allowed_to_exchange += 4000000;
+        balanceOf[_rawbot_team] = (totalSupply * 1) / 5;
+        totalSupply -= balanceOf[_rawbot_team];
+        user[msg.sender].available = true;
+        user[msg.sender].allowed_to_exchange += 4000000;
     }
 
     /**
