@@ -65,12 +65,12 @@ contract Rawbot is usingOraclize, StandardToken {
             PAYMENT_STEP = 1;
             pending[msg.sender] += msg.value;
         } else {
-            buy(msg.sender, msg.value);
+            _buy(msg.sender, msg.value);
             PAYMENT_STEP = 2;
         }
     }
 
-    function buy(address _address, uint256 _value) private {
+    function _buy(address _address, uint256 _value) private {
         uint256 raw_amount = (_value * ETH_PRICE * 2);
         totalSupply -= raw_amount;
         balanceOf[_address] += raw_amount;
@@ -83,8 +83,8 @@ contract Rawbot is usingOraclize, StandardToken {
         emit ExchangeToRaw(_address, _value, raw_amount);
     }
 
-    function buyManual() public payable {
-        buy(msg.sender, pending[msg.sender]);
+    function buy() public payable {
+        _buy(msg.sender, pending[msg.sender]);
         uint256 raw_amount = (msg.value * ETH_PRICE * 2);
         pending[msg.sender] = 0;
     }
