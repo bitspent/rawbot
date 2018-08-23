@@ -45,15 +45,14 @@ contract Device is usingOraclize {
     address private device_owner;
 
     Action[] actions;
-
-    mapping(uint256 => ActionHistory[]) private action_history;
-
     Rawbot private rawbot;
     address public constant rawbot_address = 0xb2992f579ed42387cd583bfac8fd16bd59b55fc5;
     uint public hash_index = 0;
-    mapping(uint => string) ipfs_hash;
-
     uint256 public RECURRING_PAYMENT_STEP = 0;
+
+    mapping(uint => string) ipfs_hash;
+    mapping(bytes32 => uint256) public query_ids;
+    mapping(uint256 => ActionHistory[]) private action_history;
 
     //0x50165970a40f9cf945a7f7c6b8a9d9d593d60ee4, "ABC", "Raspberry PI 3"
     constructor(address _device_owner, string _device_serial_number, string _device_name) payable public {
@@ -78,7 +77,6 @@ contract Device is usingOraclize {
         return true;
     }
 
-    //"ABC", 0
     function enableAction(uint256 action_id) public payable returns (bool success) {
         require(actions[action_id].available == true, "Device action id is not available");
         require(rawbot.getBalance(msg.sender) >= actions[action_id].price, "User doesn't have enough balance");
@@ -96,7 +94,6 @@ contract Device is usingOraclize {
         return true;
     }
 
-    //"ABC", 0
     function disableAction(uint256 action_id) public payable returns (bool success) {
         require(actions[action_id].available == true, "Device action id is not available");
         action_history[action_id].push(ActionHistory(msg.sender, action_id, now, false, false, true));
@@ -104,7 +101,7 @@ contract Device is usingOraclize {
         return true;
     }
 
-    //"ABC", 0, 0
+    //0, 0
     function refund(uint256 action_id, uint _action_history_id) payable public returns (bool) {
         require(msg.sender == device_owner);
         require(actions[action_id].available == true);
@@ -117,7 +114,7 @@ contract Device is usingOraclize {
         return true;
     }
 
-    //"ABC", 0, 0
+    //0, 0
     function refundAutomatic(uint256 action_id, uint256 _action_history_id) payable public returns (bool success) {
         require(actions[action_id].available == true);
         require(actions[action_id].refundable == true);
@@ -149,8 +146,6 @@ contract Device is usingOraclize {
     function getDeviceSerialNumber() public view returns (string) {
         return device_serial_number;
     }
-
-    mapping(bytes32 => uint256) public query_ids;
 
     function __callback(bytes32 myid, string result) {
         if (msg.sender != oraclize_cbAddress()) revert();
