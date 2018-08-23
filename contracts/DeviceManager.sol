@@ -46,5 +46,4 @@ contract DeviceManager {
         rawbot.modifyBalance(msg.sender, value);
         return true;
     }
-
 }
