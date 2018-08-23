@@ -48,12 +48,10 @@ contract Device is usingOraclize {
 
     mapping(uint256 => ActionHistory[]) private action_history;
 
-    RA[] recurring_action_array;
     Rawbot private rawbot;
     address public constant rawbot_address = 0xb2992f579ed42387cd583bfac8fd16bd59b55fc5;
     uint public hash_index = 0;
     mapping(uint => string) ipfs_hash;
-
 
     uint256 public RECURRING_PAYMENT_STEP = 0;
 
@@ -86,9 +84,9 @@ contract Device is usingOraclize {
         require(rawbot.getBalance(msg.sender) >= actions[action_id].price, "User doesn't have enough balance");
 
         if (actions[action_id].recurring == true) {
-            // require(oraclize_getPrice("URL") > address(this).balance);
-            oraclize_query(actions[action_id].duration * 86400, "URL", "");
-            recurring_action_array.push(RA(action_id, action_history[action_id].length - 1, true));
+            require(oraclize_getPrice("URL") <= address(this).balance);
+            bytes32 query_id = oraclize_query(actions[action_id].duration * 86400, "URL", "");
+            query_ids[query_id] = action_id;
         }
 
         rawbot.modifyBalance(msg.sender, - actions[action_id].price);
@@ -105,7 +103,6 @@ contract Device is usingOraclize {
         emit ActionDisable(action_id, actions[action_id].name, actions[action_id].price, actions[action_id].duration, actions[action_id].recurring, actions[action_id].refundable, true);
         return true;
     }
-
 
     //"ABC", 0, 0
     function refund(uint256 action_id, uint _action_history_id) payable public returns (bool) {
@@ -153,29 +150,15 @@ contract Device is usingOraclize {
         return device_serial_number;
     }
 
+    mapping(bytes32 => uint256) public query_ids;
+
     function __callback(bytes32 myid, string result) {
         if (msg.sender != oraclize_cbAddress()) revert();
-
-        RA[] storage temp_recurring_action_array;
-        for (uint i = 0; i < recurring_action_array.length; i++) {
-            require(action_history[id][hid].id == id);
-
-            uint256 id = recurring_action_array[i].action_id;
-            uint256 hid = recurring_action_array[i].history_id;
-
-            uint _days = actions[id].duration * 1 days;
-            uint _time = action_history[id][hid].time;
-            uint difference = now - (_days + _time);
-            if (difference > 0) {
-                disableAction(id);
-            } else {
-                temp_recurring_action_array.push(RA(recurring_action_array[i].action_id, recurring_action_array[i].history_id, recurring_action_array[i].available));
-            }
-
-            recurring_action_array = temp_recurring_action_array;
-            RECURRING_PAYMENT_STEP++;
-        }
-
+        uint id = query_ids[myid];
+        disableAction(id);
+        emit ActionDisable(id, actions[id].name, actions[id].price, actions[id].duration, actions[id].recurring, actions[id].refundable, true);
+        delete query_ids[myid];
+        RECURRING_PAYMENT_STEP++;
         emit RecurringPaymentLog("Recurring payment callback.");
     }
 }
