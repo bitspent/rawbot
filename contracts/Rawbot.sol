@@ -47,10 +47,10 @@ contract Rawbot is usingOraclize, StandardToken {
     constructor() StandardToken(20000000, "Rawbot Test 1", "TWR") public payable {
         _rawbot_team = msg.sender;
         price_status = PRICE_CHECKING_STATUS.NEEDED;
-        balanceOf[_rawbot_team] = (totalSupply * 1) / 5;
-        totalSupply -= balanceOf[_rawbot_team];
-        user[msg.sender].available = true;
-        user[msg.sender].allowed_to_exchange += 4000000;
+        //        balanceOf[_rawbot_team] = (totalSupply * 1) / 5;
+        //        totalSupply -= balanceOf[_rawbot_team];
+        //        user[msg.sender].available = true;
+        //        user[msg.sender].allowed_to_exchange += 4000000;
     }
 
     /**
@@ -84,7 +84,7 @@ contract Rawbot is usingOraclize, StandardToken {
     }
 
     function buy() public payable {
-        _buy(msg.sender, pending[msg.sender]);
+        buy(msg.sender, pending[msg.sender]);
         uint256 raw_amount = (msg.value * ETH_PRICE * 2);
         pending[msg.sender] = 0;
     }
@@ -95,12 +95,12 @@ contract Rawbot is usingOraclize, StandardToken {
     */
     function withdraw(uint value) public payable returns (bool) {
         require(getExchangeLeftOf(msg.sender) > 0);
-        require(getExchangeLeftOf(msg.sender) >= value);
-        require(balanceOf[msg.sender] >= value);
+        require(getExchangeLeftOf(msg.sender) >= value * 1e18);
+        require(balanceOf[msg.sender] >= value * 1e18);
         uint256 ether_to_send = (value * 1e18) / (2 * ETH_PRICE);
         msg.sender.transfer(ether_to_send);
-        balanceOf[msg.sender] -= value;
-        user[msg.sender].allowed_to_exchange -= value;
+        balanceOf[msg.sender] -= value * 1e18;
+        user[msg.sender].allowed_to_exchange -= value * 1e18;
         emit ExchangeToEther(msg.sender, value, ether_to_send);
         return true;
     }
