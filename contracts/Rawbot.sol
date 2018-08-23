@@ -11,10 +11,7 @@ contract Rawbot is usingOraclize, StandardToken {
     address[] private exchange_addresses;
     address private ContractDeviceManagerAddress;
     mapping(address => User) private user;
-
-    uint public index_starter = 0;
-    uint public index_checker = 0;
-    mapping(uint => transaction_exchange) transaction_exchanges;
+    mapping(address => uint256) public pending;
 
     event OraclizeLog(string _description, uint256 _time);
 
@@ -25,12 +22,6 @@ contract Rawbot is usingOraclize, StandardToken {
 
     enum PRICE_CHECKING_STATUS {
         NEEDED, PENDING, FETCHED
-    }
-
-    struct transaction_exchange {
-        address _address;
-        uint256 _eth;
-        uint256 _time;
     }
 
     struct User {
@@ -55,7 +46,6 @@ contract Rawbot is usingOraclize, StandardToken {
     */
     constructor() StandardToken(20000000, "Rawbot Test 1", "TWR") public payable {
         _rawbot_team = msg.sender;
-
         price_status = PRICE_CHECKING_STATUS.NEEDED;
         balanceOf[_rawbot_team] = (totalSupply * 1) / 5;
         totalSupply -= balanceOf[_rawbot_team];
@@ -69,18 +59,34 @@ contract Rawbot is usingOraclize, StandardToken {
         at the same time to avoid fetching Ethereum price at the same time
     */
     function() payable public {
-
-        transaction_exchanges[index_starter] = transaction_exchange(msg.sender, msg.value, now);
-        index_starter++;
-
         if (ETH_PRICE == 0 || now - last_price_update > 300) {
+            price_status = PRICE_CHECKING_STATUS.NEEDED;
             fetchEthereumPrice(0);
             PAYMENT_STEP = 1;
-            revert();
+            pending[msg.sender] += msg.value;
         } else {
+            buy(msg.sender, msg.value);
             PAYMENT_STEP = 2;
-            exchangeAll();
         }
+    }
+
+    function buy(address _address, uint256 _value) private {
+        uint256 raw_amount = (_value * ETH_PRICE * 2);
+        totalSupply -= raw_amount;
+        balanceOf[_address] += raw_amount;
+        transfer(_address, raw_amount);
+        user[_address].exchange_history.push(ExchangeHistory(raw_amount, 0, _value, ETH_PRICE, now, true));
+        if (user[_address].available == false) {
+            exchange_addresses.push(_address);
+        }
+        user[_address].allowed_to_exchange += raw_amount;
+        emit ExchangeToRaw(_address, _value, raw_amount);
+    }
+
+    function buyManual() public payable {
+        buy(msg.sender, pending[msg.sender]);
+        uint256 raw_amount = (msg.value * ETH_PRICE * 2);
+        pending[msg.sender] = 0;
     }
 
     /**
@@ -114,7 +120,7 @@ contract Rawbot is usingOraclize, StandardToken {
     /**
        This method is used to fetch the Ethereum price using Oraclize API
     */
-    function fetchEthereumPrice(uint timing) public payable {
+    function fetchEthereumPrice(uint timing) onlyOwner public payable {
         if (oraclize_getPrice("URL") > address(this).balance) {
             emit OraclizeLog("Oraclize query was NOT sent, please add some ETH to cover for the query fee", now);
         } else {
@@ -134,38 +140,12 @@ contract Rawbot is usingOraclize, StandardToken {
 
     function __callback(bytes32 myid, string result) {
         if (msg.sender != oraclize_cbAddress()) revert();
-        PAYMENT_STEP = 6;
+        PAYMENT_STEP = 3;
         ETH_PRICE = parseInt(result);
         emit OraclizeLog(result, now);
         last_price_update = now;
         price_status = PRICE_CHECKING_STATUS.FETCHED;
     }
-
-    /**
-        This method is used to execute all queued exchanges at the same time
-        Mapping is used instead of arrays to avoid gas spending
-    */
-    function exchangeAll() private {
-        for (uint i = index_checker; i < index_starter; i++) {
-            uint256 _eth = transaction_exchanges[index_checker]._eth;
-            address _address = transaction_exchanges[index_checker]._address;
-            uint256 time = transaction_exchanges[index_checker]._time;
-
-            uint256 raw_amount = (_eth * ETH_PRICE * 2);
-            totalSupply -= raw_amount;
-            balanceOf[_address] += raw_amount;
-            transfer(_address, raw_amount);
-
-            user[_address].exchange_history.push(ExchangeHistory(raw_amount, 0, _eth, ETH_PRICE, time, true));
-            if (user[_address].available == false) {
-                exchange_addresses.push(_address);
-            }
-            user[_address].allowed_to_exchange += raw_amount;
-            emit ExchangeToRaw(_address, _eth, raw_amount);
-        }
-        index_checker = index_starter;
-    }
-
     /**
         This method is used to set the DeviceManager's address
         It's used to manipulate the modifyBalance function
