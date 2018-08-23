@@ -78,8 +78,10 @@ contract Device is usingOraclize {
     }
 
     function enableAction(uint256 action_id) public payable returns (bool success) {
-        require(actions[action_id].available == true, "Device action id is not available");
-        require(rawbot.getBalance(msg.sender) >= actions[action_id].price, "User doesn't have enough balance");
+        require(
+            actions[action_id].available == true
+            && rawbot.getBalance(msg.sender) >= actions[action_id].price
+        );
 
         if (actions[action_id].recurring == true) {
             require(oraclize_getPrice("URL") <= address(this).balance);
@@ -103,12 +105,14 @@ contract Device is usingOraclize {
 
     //0, 0
     function refund(uint256 action_id, uint _action_history_id) payable public returns (bool) {
-        require(msg.sender == device_owner);
-        require(actions[action_id].available == true);
-        require(actions[action_id].refundable == true);
-        require(action_history[action_id][_action_history_id].available == true);
-        require(action_history[action_id][_action_history_id].id == action_id);
-        require(action_history[action_id][_action_history_id].refunded == false);
+        require(
+            msg.sender == device_owner
+            && actions[action_id].available == true
+            && actions[action_id].refundable == true
+            && action_history[action_id][_action_history_id].available == true
+            && action_history[action_id][_action_history_id].id == action_id
+            && action_history[action_id][_action_history_id].refunded == false
+        );
         rawbot.modifyBalance(msg.sender, actions[action_id].price);
         emit Refund(action_id, _action_history_id, actions[action_id].price, now);
         return true;
@@ -116,13 +120,14 @@ contract Device is usingOraclize {
 
     //0, 0
     function refundAutomatic(uint256 action_id, uint256 _action_history_id) payable public returns (bool success) {
-        require(actions[action_id].available == true);
-        require(actions[action_id].refundable == true);
-        require(action_history[action_id][_action_history_id].available == true);
-        require(action_history[action_id][_action_history_id].id == action_id);
-        require(action_history[action_id][_action_history_id].refunded == false);
-        uint256 time_passed = now - (action_history[action_id][_action_history_id].time + actions[action_id].duration);
-        require(time_passed < 0);
+        require(
+            actions[action_id].available == true
+            && actions[action_id].refundable == true
+            && action_history[action_id][_action_history_id].available == true
+            && action_history[action_id][_action_history_id].id == action_id
+            && action_history[action_id][_action_history_id].refunded == false
+            && now - (action_history[action_id][_action_history_id].time + actions[action_id].duration) < 0
+        );
         emit RefundAutomatic(action_id, _action_history_id, actions[action_id].price, now);
         return true;
     }
