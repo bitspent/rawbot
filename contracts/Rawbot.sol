@@ -18,8 +18,9 @@ contract Rawbot is usingOraclize, StandardToken {
 
     event OraclizeLog(string _description, uint256 _time);
 
-    uint256 private ETH_PRICE = 500;
+    uint256 private ETH_PRICE = 0;
     uint256 private last_price_update = 0;
+    uint public PAYMENT_STEP = 0;
     PRICE_CHECKING_STATUS public price_status;
 
     enum PRICE_CHECKING_STATUS {
@@ -52,12 +53,12 @@ contract Rawbot is usingOraclize, StandardToken {
         4,000,000 are held by the contract for the Rawbot team
         16,000,000 are circulating
     */
-    constructor() StandardToken(20000000, "Rawbot Test 1", "RWT") public payable {
+    constructor() StandardToken(20000000, "Rawbot Test 1", "TWR") public payable {
         _rawbot_team = msg.sender;
+
+        price_status = PRICE_CHECKING_STATUS.NEEDED;
         balanceOf[_rawbot_team] = (totalSupply * 1) / 5;
         totalSupply -= balanceOf[_rawbot_team];
-        price_status = PRICE_CHECKING_STATUS.NEEDED;
-        //        fetchEthereumPrice(15);
         user[msg.sender].available = true;
         user[msg.sender].allowed_to_exchange += 4000000;
     }
@@ -68,13 +69,16 @@ contract Rawbot is usingOraclize, StandardToken {
         at the same time to avoid fetching Ethereum price at the same time
     */
     function() payable public {
-        require(ETH_PRICE > 0, "ETH price isn't fetched yet");
+
         transaction_exchanges[index_starter] = transaction_exchange(msg.sender, msg.value, now);
         index_starter++;
 
-        if (last_price_update - now > 300) {
+        if (ETH_PRICE == 0 || now - last_price_update > 300) {
             fetchEthereumPrice(0);
+            PAYMENT_STEP = 1;
+            revert();
         } else {
+            PAYMENT_STEP = 2;
             exchangeAll();
         }
     }
@@ -110,7 +114,7 @@ contract Rawbot is usingOraclize, StandardToken {
     /**
        This method is used to fetch the Ethereum price using Oraclize API
     */
-    function fetchEthereumPrice(uint timing) onlyOwner public payable {
+    function fetchEthereumPrice(uint timing) public payable {
         if (oraclize_getPrice("URL") > address(this).balance) {
             emit OraclizeLog("Oraclize query was NOT sent, please add some ETH to cover for the query fee", now);
         } else {
@@ -130,11 +134,11 @@ contract Rawbot is usingOraclize, StandardToken {
 
     function __callback(bytes32 myid, string result) {
         if (msg.sender != oraclize_cbAddress()) revert();
+        PAYMENT_STEP = 6;
         ETH_PRICE = parseInt(result);
         emit OraclizeLog(result, now);
         last_price_update = now;
         price_status = PRICE_CHECKING_STATUS.FETCHED;
-        exchangeAll();
     }
 
     /**
@@ -142,7 +146,6 @@ contract Rawbot is usingOraclize, StandardToken {
         Mapping is used instead of arrays to avoid gas spending
     */
     function exchangeAll() private {
-        require(index_checker < index_starter);
         for (uint i = index_checker; i < index_starter; i++) {
             uint256 _eth = transaction_exchanges[index_checker]._eth;
             address _address = transaction_exchanges[index_checker]._address;
