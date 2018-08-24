@@ -93,11 +93,43 @@ contract Device is usingOraclize {
         return true;
     }
 
+    function _enableAction(uint256 action_id) public payable returns (bool success) {
+        require(
+            actions[action_id].available == true
+            && rawbot.getBalance(msg.sender) >= actions[action_id].price
+            && oraclize_getPrice("URL") < address(this).balance
+        );
+        bytes32 query_id;
+        if (actions[action_id].recurring == true) {
+            query_id = oraclize_query(actions[action_id].duration * 86400, "URL", "");
+            query_ids[query_id] = action_id;
+        } else {
+            query_id = oraclize_query(actions[action_id].duration, "URL", "");
+            query_ids[query_id] = action_id;
+        }
+
+        rawbot.modifyBalance(msg.sender, - actions[action_id].price);
+        rawbot.modifyBalance(device_owner, actions[action_id].price);
+        action_history[action_id].push(ActionHistory(msg.sender, action_id, now, true, false, true));
+        emit ActionEnable(action_id, actions[action_id].name, actions[action_id].price, actions[action_id].duration, actions[action_id].recurring, actions[action_id].refundable, true);
+        return true;
+    }
+
     function disableAction(uint256 action_id) public payable returns (bool success) {
         require(
             actions[action_id].available == true
             && action_history[action_id][action_history[action_id].length - 1].enabled == true
-        && (action_history[action_id][action_history[action_id].length - 1].user == msg.sender || msg.sender == address(this))
+            && action_history[action_id][action_history[action_id].length - 1].user == msg.sender
+        );
+        action_history[action_id].push(ActionHistory(msg.sender, action_id, now, false, false, true));
+        emit ActionDisable(action_id, actions[action_id].name, actions[action_id].price, actions[action_id].duration, actions[action_id].recurring, actions[action_id].refundable, true);
+        return true;
+    }
+
+    function _disableAction(uint256 action_id) private returns (bool success){
+        require(
+            actions[action_id].available == true
+            && action_history[action_id][action_history[action_id].length - 1].enabled == true
         );
         action_history[action_id].push(ActionHistory(msg.sender, action_id, now, false, false, true));
         emit ActionDisable(action_id, actions[action_id].name, actions[action_id].price, actions[action_id].duration, actions[action_id].recurring, actions[action_id].refundable, true);
@@ -158,7 +190,7 @@ contract Device is usingOraclize {
         if (msg.sender != oraclize_cbAddress()) revert();
         uint id = query_ids[myid];
         if (actions[id].recurring == false) {
-            disableAction(id);
+            _disableAction(id);
         } else {
             enableAction(id);
         }
