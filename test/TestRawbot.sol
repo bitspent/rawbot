@@ -52,7 +52,6 @@ contract TestRawbot {
     //    }
 
     function testAddDevice() public {
-        //        Assert.isTrue(, "Failed to add device");
         bool device_added = device_manager.addDevice("ABC", "Raspberry PI 3");
         Assert.isTrue(device_added, "Failed to add device.");
     }
@@ -62,42 +61,27 @@ contract TestRawbot {
     }
 
     function testAddAction() public {
-        bool add_action = device.addAction("ABC", "Open", 20, 20, true);
+        bool add_action = device.addAction("Open", 20, 20, true);
         Assert.isTrue(add_action, "Failed to add action.");
     }
 
     function testEnableAction() public {
-        bool enable_action = device.enableAction("ABC", 0);
+        bool enable_action = device.enableAction(0);
         Assert.isTrue(enable_action, "Failed to enable action.");
     }
 
     function testDisableAction() public {
-        bool disable_action = device.disableAction("ABC", 0);
+        bool disable_action = device.disableAction(0);
         Assert.isTrue(disable_action, "Failed to disable action.");
     }
 
-    function testAddRecurringAction() public {
-        bool add_action = device.addRecurringAction("ABC", "Open", 20, 20, true);
-        Assert.isTrue(add_action, "Failed to add recurring action.");
-    }
-
-    function testEnableRecurringAction() public {
-        bool enable_action = device.enableRecurringAction("ABC", 0);
-        Assert.isTrue(enable_action, "Failed to enable recurring action.");
-    }
-
-    function testDisableRecurringAction() {
-        bool disable_action = device.disableRecurringAction("ABC", 0);
-        Assert.isTrue(disable_action, "Failed to disabled recurring action.");
-    }
-
     function testRefund() {
-        bool refund = device.refund("ABC", 0, 0);
+        bool refund = device.refund(0, 0);
         Assert.isTrue(refund, "Failed to refund action.");
     }
 
     function testRefundAutomatic() {
-        bool refundAutomatic = device.refundAutomatic("ABC", 0, 0);
+        bool refundAutomatic = device.refundAutomatic(0, 0);
         Assert.isTrue(refundAutomatic, "Failed to automatically refund action.");
     }
 

@@ -45,14 +45,18 @@ contract Device is usingOraclize {
 
     mapping(uint => string) ipfs_hash;
     mapping(bytes32 => uint256) public query_ids;
+    mapping(bytes32 => address) public query_address;
     mapping(uint256 => ActionHistory[]) private action_history;
 
     //0x50165970a40f9cf945a7f7c6b8a9d9d593d60ee4, "ABC", "Raspberry PI 3"
     constructor(address _device_owner, string _device_serial_number, string _device_name) payable public {
-        device_owner = _device_owner;
+        device_owner = msg.sender;
         device_serial_number = _device_serial_number;
         device_name = _device_name;
         rawbot = Rawbot(rawbot_address);
+
+        actions.push(Action(actions.length, "Open", 50, 0, true, false, true));
+        actions.push(Action(actions.length, "Close", 20, 0, false, false, true));
     }
 
     function addImageHash(string _hash) public returns (bool) {
@@ -66,67 +70,45 @@ contract Device is usingOraclize {
     function addAction(string action_name, uint256 action_price, uint256 action_duration, bool recurring, bool refundable) public payable returns (bool){
         require(device_owner == msg.sender);
         actions.push(Action(actions.length, action_name, action_price, action_duration, recurring, refundable, true));
-        emit ActionAdd(actions.length, action_name, action_price, action_duration, recurring, refundable, true);
+        emit ActionAdd(
+            actions.length,
+            action_name,
+            action_price,
+            action_duration,
+            recurring,
+            refundable,
+            true
+        );
         return true;
     }
 
-    function enableAction(uint256 action_id) public payable returns (bool success) {
+    function _enableAction(uint256 action_id) private returns (bool success) {
         require(
             actions[action_id].available == true
-            && action_history[action_id][action_history[action_id].length - 1].enabled == false
-            && rawbot.getBalance(msg.sender) >= actions[action_id].price
+            && actions[action_id].recurring == true
+            && actions[action_id].price <= rawbot.getBalance(action_history[action_id][action_history[action_id].length - 1].user)
             && oraclize_getPrice("URL") < address(this).balance
         );
-        bytes32 query_id;
-        if (actions[action_id].recurring == true) {
-            query_id = oraclize_query(actions[action_id].duration * 86400, "URL", "");
-            query_ids[query_id] = action_id;
-        } else {
-            query_id = oraclize_query(actions[action_id].duration, "URL", "");
-            query_ids[query_id] = action_id;
-        }
 
-        rawbot.modifyBalance(msg.sender, - actions[action_id].price);
-        rawbot.modifyBalance(device_owner, actions[action_id].price);
-        action_history[action_id].push(ActionHistory(msg.sender, action_id, now, true, false, true));
-        emit ActionEnable(action_id, actions[action_id].name, actions[action_id].price, actions[action_id].duration, actions[action_id].recurring, actions[action_id].refundable, true);
-        return true;
-    }
+        bytes32 query_id = oraclize_query(5, "URL", "");
+        //        bytes32 query_id = oraclize_query(actions[action_id].duration * 86400, "URL", "");
+        query_ids[query_id] = action_id;
 
-    function _enableAction(uint256 action_id) public payable returns (bool success) {
-        require(
-            actions[action_id].available == true
-            && rawbot.getBalance(msg.sender) >= actions[action_id].price
-            && oraclize_getPrice("URL") < address(this).balance
+
+        //        rawbot.modifyBalance(action_history[action_id][action_history[action_id].length - 1].user, - actions[action_id].price);
+        //        rawbot.modifyBalance(device_owner, actions[action_id].price);
+        //        action_history[action_id].push(ActionHistory(action_history[action_id][action_history[action_id].length - 1].user, action_id, now, true, false, true));
+
+        emit ActionEnable(
+            action_id,
+            actions[action_id].name,
+            actions[action_id].price,
+            actions[action_id].duration,
+            actions[action_id].recurring,
+            actions[action_id].refundable,
+            true
         );
-        bytes32 query_id;
-        if (actions[action_id].recurring == true) {
-            query_id = oraclize_query(actions[action_id].duration * 86400, "URL", "");
-            query_ids[query_id] = action_id;
-        } else {
-            query_id = oraclize_query(actions[action_id].duration, "URL", "");
-            query_ids[query_id] = action_id;
-        }
 
-        rawbot.modifyBalance(msg.sender, - actions[action_id].price);
-        rawbot.modifyBalance(device_owner, actions[action_id].price);
-        action_history[action_id].push(ActionHistory(msg.sender, action_id, now, true, false, true));
-        emit ActionEnable(action_id, actions[action_id].name, actions[action_id].price, actions[action_id].duration, actions[action_id].recurring, actions[action_id].refundable, true);
-        return true;
-    }
-
-    function disableRecurringAction(uint256 action_id) public payable returns (bool success){
-        return true;
-    }
-
-    function disableAction(uint256 action_id) public payable returns (bool success) {
-        require(
-            actions[action_id].available == true
-            && action_history[action_id][action_history[action_id].length - 1].enabled == true
-            && action_history[action_id][action_history[action_id].length - 1].user == msg.sender
-        );
-        action_history[action_id].push(ActionHistory(msg.sender, action_id, now, false, false, true));
-        emit ActionDisable(action_id, actions[action_id].name, actions[action_id].price, actions[action_id].duration, actions[action_id].recurring, actions[action_id].refundable, true);
         return true;
     }
 
@@ -140,6 +122,91 @@ contract Device is usingOraclize {
         return true;
     }
 
+    function enableAction(uint256 action_id) public payable returns (bool success) {
+        require(
+            actions[action_id].available == true
+            && rawbot.getBalance(msg.sender) >= actions[action_id].price
+            && oraclize_getPrice("URL") < address(this).balance
+        );
+
+        if (action_history[action_id].length == 0) {
+            bytes32 query_id;
+            if (actions[action_id].recurring == true) {
+                query_id = oraclize_query(actions[action_id].duration * 86400, "URL", "");
+                query_ids[query_id] = action_id;
+                query_address[query_id] = msg.sender;
+            } else {
+                query_id = oraclize_query(actions[action_id].duration, "URL", "");
+                query_ids[query_id] = action_id;
+                query_address[query_id] = msg.sender;
+            }
+
+            rawbot.modifyBalance(msg.sender, - actions[action_id].price);
+            rawbot.modifyBalance(device_owner, actions[action_id].price);
+            action_history[action_id].push(ActionHistory(msg.sender, action_id, now, true, false, true));
+            emit ActionEnable(action_id,
+                actions[action_id].name,
+                actions[action_id].price,
+                actions[action_id].duration,
+                actions[action_id].recurring,
+                actions[action_id].refundable,
+                true
+            );
+            return true;
+        } else {
+            if (action_history[action_id][action_history[action_id].length - 1].enabled == false) {
+                bytes32 query_id2;
+                if (actions[action_id].recurring == true) {
+                    query_id2 = oraclize_query(actions[action_id].duration * 86400, "URL", "");
+                    query_ids[query_id2] = action_id;
+                } else {
+                    query_id2 = oraclize_query(actions[action_id].duration, "URL", "");
+                    query_ids[query_id2] = action_id;
+                }
+
+                rawbot.modifyBalance(msg.sender, - actions[action_id].price);
+                rawbot.modifyBalance(device_owner, actions[action_id].price);
+                action_history[action_id].push(ActionHistory(msg.sender, action_id, now, true, false, true));
+                emit ActionEnable(
+                    action_id,
+                    actions[action_id].name,
+                    actions[action_id].price,
+                    actions[action_id].duration,
+                    actions[action_id].recurring,
+                    actions[action_id].refundable,
+                    true
+                );
+                return true;
+            } else {
+                revert();
+                return false;
+            }
+        }
+    }
+
+    function disableRecurringAction(uint256 action_id) public payable returns (bool success){
+        return true;
+    }
+
+    function disableAction(uint256 action_id) public payable returns (bool success) {
+        require(
+            actions[action_id].available == true
+            && action_history[action_id][action_history[action_id].length - 1].enabled == true
+            && action_history[action_id][action_history[action_id].length - 1].user == msg.sender
+        );
+        action_history[action_id][action_history[action_id].length - 1].enabled = false;
+        emit ActionDisable(
+            action_id,
+            actions[action_id].name,
+            actions[action_id].price,
+            actions[action_id].duration,
+            actions[action_id].recurring,
+            actions[action_id].refundable,
+            true
+        );
+        return true;
+    }
+
     //0, 0
     function refund(uint256 action_id, uint _action_history_id) payable public returns (bool) {
         require(
@@ -150,8 +217,14 @@ contract Device is usingOraclize {
             && action_history[action_id][_action_history_id].id == action_id
             && action_history[action_id][_action_history_id].refunded == false
         );
-        rawbot.modifyBalance(msg.sender, actions[action_id].price);
-        emit Refund(action_id, _action_history_id, actions[action_id].price, now);
+        rawbot.modifyBalance(msg.sender, - actions[action_id].price);
+        rawbot.modifyBalance(action_history[action_id][_action_history_id].user, actions[action_id].price);
+        emit Refund(
+            action_id,
+            _action_history_id,
+            actions[action_id].price,
+            now
+        );
         return true;
     }
 
@@ -166,12 +239,63 @@ contract Device is usingOraclize {
             && action_history[action_id][_action_history_id].refunded == false
             && now - (action_history[action_id][_action_history_id].time + actions[action_id].duration) < 0
         );
-        emit RefundAutomatic(action_id, _action_history_id, actions[action_id].price, now);
+        emit RefundAutomatic(
+            action_id,
+            _action_history_id,
+            actions[action_id].price,
+            now
+        );
         return true;
     }
 
-    function getActionPrice(uint256 action_id) public view returns (uint) {
-        return actions[action_id].price;
+    function __callback(bytes32 myid, string result) {
+        if (msg.sender != oraclize_cbAddress()) revert();
+        uint id = query_ids[myid];
+        address user = query_address[myid];
+        if (actions[id].recurring == false) {
+            RECURRING_PAYMENT_STEP = actions[id].price;
+            // _disableAction(id);
+        } else {
+            RECURRING_PAYMENT_STEP = actions[id].price;
+            _enableAction(id);
+        }
+        delete query_ids[myid];
+        // RECURRING_PAYMENT_STEP++;
+        emit RecurringPaymentLog("Recurring payment callback.");
+    }
+
+    function getAction(uint256 action_id) public view returns (uint256, string, uint256, uint256, bool, bool, bool) {
+        return (
+        actions[action_id].id,
+        actions[action_id].name,
+        actions[action_id].price,
+        actions[action_id].duration,
+        actions[action_id].recurring,
+        actions[action_id].refundable,
+        actions[action_id].available
+        );
+    }
+
+    function getActionHistory(uint256 action_id, uint256 action_history_index) public view returns (address, uint256, uint256, bool, bool, bool) {
+        return (
+        action_history[action_id][action_history_index].user,
+        action_history[action_id][action_history_index].id,
+        action_history[action_id][action_history_index].time,
+        action_history[action_id][action_history_index].enabled,
+        action_history[action_id][action_history_index].refunded,
+        action_history[action_id][action_history_index].available
+        );
+    }
+
+    function getLastActionHistory(uint256 action_id) public view returns (address, uint256, uint256, bool, bool, bool) {
+        return (
+        action_history[action_id][action_history[action_id].length - 1].user,
+        action_history[action_id][action_history[action_id].length - 1].id,
+        action_history[action_id][action_history[action_id].length - 1].time,
+        action_history[action_id][action_history[action_id].length - 1].enabled,
+        action_history[action_id][action_history[action_id].length - 1].refunded,
+        action_history[action_id][action_history[action_id].length - 1].available
+        );
     }
 
     function isRefundable(uint256 action_id) public view returns (bool) {
@@ -188,18 +312,5 @@ contract Device is usingOraclize {
 
     function getDeviceSerialNumber() public view returns (string) {
         return device_serial_number;
-    }
-
-    function __callback(bytes32 myid, string result) {
-        if (msg.sender != oraclize_cbAddress()) revert();
-        uint id = query_ids[myid];
-        if (actions[id].recurring == false) {
-            _disableAction(id);
-        } else {
-            _enableAction(id);
-        }
-        delete query_ids[myid];
-        RECURRING_PAYMENT_STEP++;
-        emit RecurringPaymentLog("Recurring payment callback.");
     }
 }
