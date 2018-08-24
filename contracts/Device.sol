@@ -115,6 +115,10 @@ contract Device is usingOraclize {
         return true;
     }
 
+    function disableRecurringAction(uint256 action_id) public payable returns (bool success){
+        return true;
+    }
+
     function disableAction(uint256 action_id) public payable returns (bool success) {
         require(
             actions[action_id].available == true
@@ -192,7 +196,7 @@ contract Device is usingOraclize {
         if (actions[id].recurring == false) {
             _disableAction(id);
         } else {
-            enableAction(id);
+            _enableAction(id);
         }
         delete query_ids[myid];
         RECURRING_PAYMENT_STEP++;
