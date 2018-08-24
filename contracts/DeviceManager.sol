@@ -17,14 +17,14 @@ contract DeviceManager {
         rawbot = Rawbot(rawbot_address);
     }
 
-    function addDevice(string _device_serial_number, string _device_name) public payable returns (bool) {
+    function addDevice(string _device_serial_number, string _device_name) public payable returns (Device) {
         Device device = new Device(msg.sender, _device_serial_number, _device_name);
         devicesOf[msg.sender].push(device);
         ownerOf[device] = msg.sender;
         devices.push(device);
         devices_access[device] = true;
         emit DeviceAdd(msg.sender, device, _device_serial_number, _device_name);
-        return true;
+        return device;
     }
 
     function getDevices() public view returns (address[]){

@@ -4,13 +4,6 @@ import "./Rawbot.sol";
 import "./Oraclize.sol";
 
 contract Device is usingOraclize {
-
-    struct RA {
-        uint256 action_id;
-        uint256 history_id;
-        bool available;
-    }
-
     struct Action {
         uint256 id;
         string name;
@@ -25,7 +18,7 @@ contract Device is usingOraclize {
         address user;
         uint256 id;
         uint256 time;
-        bool enable;
+        bool enabled;
         bool refunded;
         bool available;
     }
@@ -46,7 +39,7 @@ contract Device is usingOraclize {
 
     Action[] actions;
     Rawbot private rawbot;
-    address public constant rawbot_address = 0xb2992f579ed42387cd583bfac8fd16bd59b55fc5;
+    address public constant rawbot_address = 0x2b39f3fcd8b3d63bfbf473ca856c10be95a650c4;
     uint public hash_index = 0;
     uint256 public RECURRING_PAYMENT_STEP = 0;
 
@@ -80,8 +73,9 @@ contract Device is usingOraclize {
     function enableAction(uint256 action_id) public payable returns (bool success) {
         require(
             actions[action_id].available == true
+            && action_history[action_id][action_history[action_id].length - 1].enabled == false
             && rawbot.getBalance(msg.sender) >= actions[action_id].price
-            && oraclize_getPrice("URL") <= address(this).balance
+            && oraclize_getPrice("URL") < address(this).balance
         );
         bytes32 query_id;
         if (actions[action_id].recurring == true) {
@@ -100,7 +94,11 @@ contract Device is usingOraclize {
     }
 
     function disableAction(uint256 action_id) public payable returns (bool success) {
-        require(actions[action_id].available == true, "Device action id is not available");
+        require(
+            actions[action_id].available == true
+            && action_history[action_id][action_history[action_id].length - 1].enabled == true
+        && (action_history[action_id][action_history[action_id].length - 1].user == msg.sender || msg.sender == address(this))
+        );
         action_history[action_id].push(ActionHistory(msg.sender, action_id, now, false, false, true));
         emit ActionDisable(action_id, actions[action_id].name, actions[action_id].price, actions[action_id].duration, actions[action_id].recurring, actions[action_id].refundable, true);
         return true;
@@ -127,6 +125,7 @@ contract Device is usingOraclize {
             actions[action_id].available == true
             && actions[action_id].refundable == true
             && action_history[action_id][_action_history_id].available == true
+            && action_history[action_id][_action_history_id].user == msg.sender
             && action_history[action_id][_action_history_id].id == action_id
             && action_history[action_id][_action_history_id].refunded == false
             && now - (action_history[action_id][_action_history_id].time + actions[action_id].duration) < 0
@@ -161,7 +160,7 @@ contract Device is usingOraclize {
         if (actions[id].recurring == false) {
             disableAction(id);
         } else {
-
+            enableAction(id);
         }
         delete query_ids[myid];
         RECURRING_PAYMENT_STEP++;
