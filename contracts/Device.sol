@@ -81,11 +81,14 @@ contract Device is usingOraclize {
         require(
             actions[action_id].available == true
             && rawbot.getBalance(msg.sender) >= actions[action_id].price
+            && oraclize_getPrice("URL") <= address(this).balance
         );
-
+        bytes32 query_id;
         if (actions[action_id].recurring == true) {
-            require(oraclize_getPrice("URL") <= address(this).balance);
-            bytes32 query_id = oraclize_query(actions[action_id].duration * 86400, "URL", "");
+            query_id = oraclize_query(actions[action_id].duration * 86400, "URL", "");
+            query_ids[query_id] = action_id;
+        } else {
+            query_id = oraclize_query(actions[action_id].duration, "URL", "");
             query_ids[query_id] = action_id;
         }
 
@@ -155,8 +158,11 @@ contract Device is usingOraclize {
     function __callback(bytes32 myid, string result) {
         if (msg.sender != oraclize_cbAddress()) revert();
         uint id = query_ids[myid];
-        disableAction(id);
-        emit ActionDisable(id, actions[id].name, actions[id].price, actions[id].duration, actions[id].recurring, actions[id].refundable, true);
+        if (actions[id].recurring == false) {
+            disableAction(id);
+        } else {
+
+        }
         delete query_ids[myid];
         RECURRING_PAYMENT_STEP++;
         emit RecurringPaymentLog("Recurring payment callback.");

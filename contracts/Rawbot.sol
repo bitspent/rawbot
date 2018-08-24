@@ -83,10 +83,13 @@ contract Rawbot is usingOraclize, StandardToken {
         emit ExchangeToRaw(_address, _value, raw_amount);
     }
 
-    function buy() public payable {
+    function proceed_buy() public payable {
         _buy(msg.sender, pending[msg.sender]);
-        uint256 raw_amount = (msg.value * ETH_PRICE * 2);
         pending[msg.sender] = 0;
+    }
+
+    function buy() public payable {
+        _buy(msg.sender, msg.value);
     }
 
     /**
