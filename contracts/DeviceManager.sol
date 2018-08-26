@@ -2,29 +2,39 @@ pragma solidity ^0.4.24;
 
 import "./Device.sol";
 import "./Rawbot.sol";
+import "./Owned.sol";
 
-contract DeviceManager {
-    address[] public devices;
-    mapping(address => address[]) public devicesOf;
-    mapping(address => address) public ownerOf;
-    mapping(address => bool) public devices_access;
+contract DeviceManager is Owned {
+    address[] private devices;
+    mapping(address => address[]) private devicesOf;
+    mapping(address => address) private ownerOf;
+    mapping(address => bool) private devices_access;
     Rawbot private rawbot;
-    address public constant rawbot_address = 0x5238527616882251df1ae2c5353dc6cf0a515fdc;
+    address private rawbot_address;
 
     event DeviceAdd(address _sender, address _contract, string _device_serial_number, string _device_name);
 
-    constructor() public payable {
-        rawbot = Rawbot(rawbot_address);
+    constructor(address _rawbot_address) public payable {
+        rawbot_address = _rawbot_address;
+        rawbot = Rawbot(_rawbot_address);
     }
 
     function addDevice(string _device_serial_number, string _device_name) public payable returns (Device) {
-        Device device = new Device(msg.sender, _device_serial_number, _device_name);
+        Device device = new Device(rawbot_address, msg.sender, _device_serial_number, _device_name);
         devicesOf[msg.sender].push(device);
         ownerOf[device] = msg.sender;
         devices.push(device);
         devices_access[device] = true;
         emit DeviceAdd(msg.sender, device, _device_serial_number, _device_name);
         return device;
+    }
+
+    function withdrawFromDevice(address device_address, uint256 value) public payable returns (bool success) {
+        require(ownerOf[device_address] == msg.sender);
+        require(rawbot.getBalance(device_address) >= value);
+        rawbot.modifyBalance(device_address, - value);
+        rawbot.modifyBalance(msg.sender, value);
+        return true;
     }
 
     function getDevices() public view returns (address[]){
@@ -39,11 +49,7 @@ contract DeviceManager {
         return devices_access[_address];
     }
 
-    function withdrawFromDevice(address device_address, uint256 value) public payable returns (bool success) {
-        require(ownerOf[device_address] == msg.sender);
-        require(rawbot.getBalance(device_address) >= value);
-        rawbot.modifyBalance(device_address, - value);
-        rawbot.modifyBalance(msg.sender, value);
-        return true;
+    function getRawbotAddress() public view returns (address){
+        return rawbot_address;
     }
 }

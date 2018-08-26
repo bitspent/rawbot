@@ -2,8 +2,9 @@ pragma solidity ^0.4.24;
 
 import "./Rawbot.sol";
 import "./Oraclize.sol";
+import "./Owned.sol";
 
-contract Device is usingOraclize {
+contract Device is Owned, usingOraclize {
     struct Action {
         uint256 id;
         string name;
@@ -30,8 +31,8 @@ contract Device is usingOraclize {
     event RefundAutomatic(uint, uint, uint, uint);
 
     event ActionAdd(uint _id, string _name, uint256 _price, uint256 _duration, bool _recurring, bool _refundable, bool _available);
-    event ActionEnable(uint _id, string _name, uint256 _price, uint256 _duration, bool _recurring, bool _refundable, bool _available);
-    event ActionDisable(uint _id, string _name, uint256 _price, uint256 _duration, bool _recurring, bool _refundable, bool _available);
+    event ActionEnable(uint _id, string _name, uint256 _price, uint256 _duration, bool _recurring, bool _refundable, bool _enable, bool _available);
+    event ActionDisable(uint _id, string _name, uint256 _price, uint256 _duration, bool _recurring, bool _refundable, bool _disalbe, bool _available);
 
     string private device_name;
     string private device_serial_number;
@@ -39,7 +40,7 @@ contract Device is usingOraclize {
 
     Action[] actions;
     Rawbot private rawbot;
-    address public constant rawbot_address = 0x2b39f3fcd8b3d63bfbf473ca856c10be95a650c4;
+    address public rawbot_address;
     uint public hash_index = 0;
     uint256 public RECURRING_PAYMENT_STEP = 0;
 
@@ -47,23 +48,27 @@ contract Device is usingOraclize {
     mapping(bytes32 => uint256) public query_ids;
     mapping(bytes32 => address) public query_address;
     mapping(uint256 => ActionHistory[]) private action_history;
+    bool private testing = false;
 
     //0x50165970a40f9cf945a7f7c6b8a9d9d593d60ee4, "ABC", "Raspberry PI 3"
-    constructor(address _device_owner, string _device_serial_number, string _device_name) payable public {
-        device_owner = msg.sender;
+    constructor(address _rawbot_address, address _device_owner, string _device_serial_number, string _device_name) payable public {
+        OAR = OraclizeAddrResolverI(0x6f485C8BF6fc43eA212E93BBF8ce046C7f1cb475);
+        device_owner = _device_owner;
         device_serial_number = _device_serial_number;
         device_name = _device_name;
-        rawbot = Rawbot(rawbot_address);
+        rawbot = Rawbot(_rawbot_address);
+        rawbot_address = _rawbot_address;
+    }
 
-        actions.push(Action(actions.length, "Open", 50, 0, true, false, true));
-        actions.push(Action(actions.length, "Close", 20, 0, false, false, true));
+    function() payable public {
+
     }
 
     function addImageHash(string _hash) public returns (bool) {
         ipfs_hash[hash_index] = _hash;
-        emit AddIPFSHash(hash_index, _hash);
         hash_index++;
         return true;
+        emit AddIPFSHash(hash_index, _hash);
     }
 
     //"Open", 50, 0, true, false
@@ -83,12 +88,12 @@ contract Device is usingOraclize {
     }
 
     function _enableAction(uint256 action_id) private returns (bool success) {
-        require(
-            actions[action_id].available == true
-            && actions[action_id].recurring == true
-            && actions[action_id].price <= rawbot.getBalance(action_history[action_id][action_history[action_id].length - 1].user)
-            && oraclize_getPrice("URL") < address(this).balance
-        );
+        //        require(
+        //            actions[action_id].available == true
+        //            && actions[action_id].recurring == true
+        //            && actions[action_id].price <= rawbot.getBalance(action_history[action_id][action_history[action_id].length - 1].user)
+        //            && oraclize_getPrice("URL") < address(this).balance
+        //        );
 
         bytes32 query_id = oraclize_query(5, "URL", "");
         //        bytes32 query_id = oraclize_query(actions[action_id].duration * 86400, "URL", "");
@@ -98,16 +103,16 @@ contract Device is usingOraclize {
         //        rawbot.modifyBalance(action_history[action_id][action_history[action_id].length - 1].user, - actions[action_id].price);
         //        rawbot.modifyBalance(device_owner, actions[action_id].price);
         //        action_history[action_id].push(ActionHistory(action_history[action_id][action_history[action_id].length - 1].user, action_id, now, true, false, true));
-
-        emit ActionEnable(
-            action_id,
-            actions[action_id].name,
-            actions[action_id].price,
-            actions[action_id].duration,
-            actions[action_id].recurring,
-            actions[action_id].refundable,
-            true
-        );
+        //
+        //        emit ActionEnable(
+        //            action_id,
+        //            actions[action_id].name,
+        //            actions[action_id].price,
+        //            actions[action_id].duration,
+        //            actions[action_id].recurring,
+        //            actions[action_id].refundable,
+        //            true
+        //        );
 
         return true;
     }
@@ -118,7 +123,7 @@ contract Device is usingOraclize {
             && action_history[action_id][action_history[action_id].length - 1].enabled == true
         );
         action_history[action_id].push(ActionHistory(msg.sender, action_id, now, false, false, true));
-        emit ActionDisable(action_id, actions[action_id].name, actions[action_id].price, actions[action_id].duration, actions[action_id].recurring, actions[action_id].refundable, true);
+        emit ActionDisable(action_id, actions[action_id].name, actions[action_id].price, actions[action_id].duration, actions[action_id].recurring, actions[action_id].refundable, true, true);
         return true;
     }
 
@@ -126,20 +131,20 @@ contract Device is usingOraclize {
         require(
             actions[action_id].available == true
             && rawbot.getBalance(msg.sender) >= actions[action_id].price
-            && oraclize_getPrice("URL") < address(this).balance
+        //            && oraclize_getPrice("URL") < address(this).balance
         );
 
         if (action_history[action_id].length == 0) {
             bytes32 query_id;
-            if (actions[action_id].recurring == true) {
-                query_id = oraclize_query(actions[action_id].duration * 86400, "URL", "");
-                query_ids[query_id] = action_id;
-                query_address[query_id] = msg.sender;
-            } else {
-                query_id = oraclize_query(actions[action_id].duration, "URL", "");
-                query_ids[query_id] = action_id;
-                query_address[query_id] = msg.sender;
-            }
+            //            if (actions[action_id].recurring == true) {
+            //                query_id = oraclize_query(actions[action_id].duration * 86400, "URL", "");
+            //                query_ids[query_id] = action_id;
+            //                query_address[query_id] = msg.sender;
+            //            } else {
+            //                query_id = oraclize_query(actions[action_id].duration, "URL", "");
+            //                query_ids[query_id] = action_id;
+            //                query_address[query_id] = msg.sender;
+            //            }
 
             rawbot.modifyBalance(msg.sender, - actions[action_id].price);
             rawbot.modifyBalance(device_owner, actions[action_id].price);
@@ -150,19 +155,20 @@ contract Device is usingOraclize {
                 actions[action_id].duration,
                 actions[action_id].recurring,
                 actions[action_id].refundable,
+                true,
                 true
             );
             return true;
         } else {
             if (action_history[action_id][action_history[action_id].length - 1].enabled == false) {
                 bytes32 query_id2;
-                if (actions[action_id].recurring == true) {
-                    query_id2 = oraclize_query(actions[action_id].duration * 86400, "URL", "");
-                    query_ids[query_id2] = action_id;
-                } else {
-                    query_id2 = oraclize_query(actions[action_id].duration, "URL", "");
-                    query_ids[query_id2] = action_id;
-                }
+                //                if (actions[action_id].recurring == true) {
+                //                    query_id2 = oraclize_query(actions[action_id].duration * 86400, "URL", "");
+                //                    query_ids[query_id2] = action_id;
+                //                } else {
+                //                    query_id2 = oraclize_query(actions[action_id].duration, "URL", "");
+                //                    query_ids[query_id2] = action_id;
+                //                }
 
                 rawbot.modifyBalance(msg.sender, - actions[action_id].price);
                 rawbot.modifyBalance(device_owner, actions[action_id].price);
@@ -174,11 +180,21 @@ contract Device is usingOraclize {
                     actions[action_id].duration,
                     actions[action_id].recurring,
                     actions[action_id].refundable,
+                    true,
                     true
                 );
                 return true;
             } else {
-                revert();
+                emit ActionEnable(
+                    action_id,
+                    actions[action_id].name,
+                    actions[action_id].price,
+                    actions[action_id].duration,
+                    actions[action_id].recurring,
+                    actions[action_id].refundable,
+                    false,
+                    true
+                );
                 return false;
             }
         }
@@ -202,6 +218,7 @@ contract Device is usingOraclize {
             actions[action_id].duration,
             actions[action_id].recurring,
             actions[action_id].refundable,
+            true,
             true
         );
         return true;
@@ -312,5 +329,13 @@ contract Device is usingOraclize {
 
     function getDeviceSerialNumber() public view returns (string) {
         return device_serial_number;
+    }
+
+    function getDeviceBalance() public view returns (uint256){
+        return address(this).balance;
+    }
+
+    function getRawbotAddress() public view returns (address){
+        return rawbot_address;
     }
 }

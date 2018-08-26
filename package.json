@@ -20,6 +20,8 @@
   },
   "homepage": "https://github.com/rawbotcoin/rawbot#readme",
   "dependencies": {
+    "ethereum-bridge": "^0.6.1",
+    "semver": "^5.5.1",
     "truffle-hdwallet-provider": "0.0.6"
   }
 }

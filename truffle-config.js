@@ -8,11 +8,32 @@
  *     },
  *     network_id: '1',
  *     gas: 4500000,
- *     gasPrice: 10000000000,
+ *     gasPrice: ,
  *   },
  */
 
 module.exports = {
     // See <http://truffleframework.com/docs/advanced/configuration>
     // to customize your Truffle configuration!
+};
+
+var HDWalletProvider = require("truffle-hdwallet-provider");
+
+module.exports = {
+    mocha: {
+        enableTimeouts: true
+    },
+    networks: {
+        development: {
+            host: "127.0.0.1",
+            port: 8545,
+            network_id: "*" // Match any network id
+        },
+        ropsten: {
+            provider: new HDWalletProvider("naive ride judge carry summer fury cruel negative sugar female system hunt", "https://ropsten.infura.io/S8sXDq6KGrjLO4ckZK2X"),
+            network_id: 3,
+            gas: 4705388,
+            gasPrice: 10000000000
+        }
+    }
 };
