@@ -109,7 +109,7 @@ contract('Rawbot', function (accounts) {
         });
     });
 
-    it("should received 1 ethereum on device contract", function () {
+    it("should receive 1 ethereum on device contract", function () {
         return Device.at(device_address).then(function (instance) {
             return instance.getDeviceBalance();
         }).then(function (balance) {
@@ -138,7 +138,7 @@ contract('Rawbot', function (accounts) {
         return Device.at(device_address).then(function (instance) {
             instance.addAction("Open", 50, 0, true, false, {to: device_address, from: accounts[0]})
                 .then(tx => {
-                    assert.equal(typeof tx.tx !== "undefined", true, "Failed to add action on device 1");
+                    assert.equal(typeof tx.tx !== "undefined", true, "Failed to add action 1 on device 1");
                 });
         });
     });
