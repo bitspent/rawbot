@@ -1,7 +1,7 @@
 var Rawbot = artifacts.require("Rawbot");
 var DeviceManager = artifacts.require("DeviceManager");
 var Device = artifacts.require("Device");
-let test_ethereum = false;
+let test_ethereum = true;
 
 contract('Rawbot', function (accounts) {
     let device_address;
