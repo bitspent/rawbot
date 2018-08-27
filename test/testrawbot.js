@@ -8,33 +8,33 @@ contract('Rawbot', function (accounts) {
 
     it("should have 0.25 ethereum in rawbot contract", async () => {
         let instance = await Rawbot.deployed();
-        let balance = await instance.getContractBalance.call();
+        let balance = await instance.getContractBalance();
         assert.equal(1e18 / 4, balance, "Contract balance isn't equal to 0.25 eth");
     });
 
     it("should have 0.25 ethereum in device manager contract", async () => {
         let instance = await DeviceManager.deployed();
-        let balance = await instance.getContractBalance.call();
+        let balance = await instance.getContractBalance();
         assert.equal(1e18 / 4, balance, "Contract balance isn't equal to 0.25 eth");
     });
 
     it("should match rawbot contract address in device manager contract", async () => {
         let rawbot = await Rawbot.deployed();
         let device_manager = await DeviceManager.deployed();
-        let device_manager_address = await device_manager.getRawbotAddress.call();
+        let device_manager_address = await device_manager.getRawbotAddress();
         let rawbot_address = await rawbot.address;
         assert.equal(device_manager_address, rawbot_address, "Rawbot contract address doesn't match the device manager's");
     });
 
     it("should have rawbot team address matching contract creator", async () => {
         let instance = await Rawbot.deployed();
-        let address = await instance.getContractCreator.call();
+        let address = await instance.getContractCreator();
         assert.equal(address, accounts[0], "Different contract creator address");
     });
 
     it("should have 4000000 rawbot coin in rawbot's team address", async () => {
         let instance = await Rawbot.deployed();
-        let balance = await instance.getBalance.call(accounts[0]);
+        let balance = await instance.getBalance(accounts[0]);
         assert.equal(balance.valueOf(), 4000000 * 1e18, "4000000 are not available in " + accounts[0]);
     });
 
@@ -46,7 +46,7 @@ contract('Rawbot', function (accounts) {
 
     it("should receive 1000 rawbot coin on account 9", async () => {
         let instance = await Rawbot.deployed();
-        let balance = await instance.getBalance.call(accounts[9]);
+        let balance = await instance.getBalance(accounts[9]);
         assert.equal(balance.valueOf() == 1000 * 1e18, true, "Failed to receive rawbot coins");
     });
 
@@ -79,13 +79,13 @@ contract('Rawbot', function (accounts) {
 
     it("should have 500 rawbot coin on account 8 from account 9", async () => {
         let instance = await Rawbot.deployed();
-        let balance = await instance.getBalance.call(accounts[8]);
+        let balance = await instance.getBalance(accounts[8]);
         assert.equal(balance.valueOf() == 500 * 1e18, true, "Failed to receive 500 rawbot coins");
     });
 
     it("should have 0 rawbot coin on account 9", async () => {
         let instance = await Rawbot.deployed();
-        let balance = await instance.getBalance.call(accounts[9]);
+        let balance = await instance.getBalance(accounts[9]);
         assert.equal(balance.valueOf() == 0, true, "Failed to check balance on account 9");
     });
 
@@ -247,13 +247,13 @@ contract('Rawbot', function (accounts) {
 
     it("should have 50 rawbot coin on device 1", async () => {
         let instance = await Rawbot.deployed();
-        let balance = await instance.getBalance.call(device_address);
+        let balance = await instance.getBalance(device_address);
         assert.equal(balance.valueOf(), 50 * 1e18, "50 are not available in device 1");
     });
 
     it("should have 450 rawbot coin on account 8", async () => {
         let instance = await Rawbot.deployed();
-        let balance = await instance.getBalance.call(accounts[8]);
+        let balance = await instance.getBalance(accounts[8]);
         assert.equal(balance.valueOf(), 450 * 1e18, "450 are not available in " + accounts[8]);
     });
 
@@ -274,7 +274,7 @@ contract('Rawbot', function (accounts) {
 
     it("should have 0 rawbot coin on device 1 after withdrawal", async () => {
         let instance = await Rawbot.deployed();
-        let balance = await instance.getBalance.call(device_address);
+        let balance = await instance.getBalance(device_address);
         assert.equal(balance.valueOf(), 0, "More than zero rawbot coins are available in device 1");
     });
 
@@ -336,13 +336,13 @@ contract('Rawbot', function (accounts) {
 
     it("should have 200 rawbot coin on account 8", async () => {
         let instance = await Rawbot.deployed();
-        let balance = await instance.getBalance.call(accounts[8]);
+        let balance = await instance.getBalance(accounts[8]);
         assert.equal(balance.valueOf(), 200 * 1e18, "200 are not available in " + accounts[8]);
     });
 
     it("should have 250 rawbot coin on device 1 after action 3 execution", async () => {
         let instance = await Rawbot.deployed();
-        let balance = await instance.getBalance.call(device_address);
+        let balance = await instance.getBalance(device_address);
         assert.equal(balance.valueOf(), 250 * 1e18, "Balance is different than 250 rawbot coins are available in device 1");
     });
 
@@ -372,7 +372,7 @@ contract('Rawbot', function (accounts) {
 
     it("should have 450 rawbot coin on account 8 after refunding action 3", async () => {
         let instance = await Rawbot.deployed();
-        let balance = await instance.getBalance.call(accounts[8]);
+        let balance = await instance.getBalance(accounts[8]);
         assert.equal(balance.valueOf(), 450 * 1e18, "450 are not available in " + accounts[8]);
     });
 
@@ -394,7 +394,7 @@ contract('Rawbot', function (accounts) {
 
     it("should have 450 rawbot coin on account 8 after automatically refunding action 3 for the second time", async () => {
         let instance = await Rawbot.deployed();
-        let balance = await instance.getBalance.call(accounts[8]);
+        let balance = await instance.getBalance(accounts[8]);
         assert.equal(balance.valueOf(), 450 * 1e18, "450 are not available in " + accounts[8]);
     });
 

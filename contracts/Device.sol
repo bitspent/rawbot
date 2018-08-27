@@ -100,17 +100,18 @@ contract Device is Owned, usingOraclize {
             actions[action_id].available == true
             && actions[action_id].recurring == true
             && actions[action_id].price <= rawbot.getBalance(action_history[action_id][action_history[action_id].length - 1].user)
-        //            && oraclize_getPrice("URL") < address(this).balance
+            && oraclize_getPrice("URL") < address(this).balance
         );
 
         //        bytes32 query_id = oraclize_query(5, "URL", "");
-        //        bytes32 query_id = oraclize_query(actions[action_id].duration * 86400, "URL", "");
-        //        query_ids[query_id] = action_id;
 
 
         rawbot.modifyBalance(action_history[action_id][action_history[action_id].length - 1].user, - actions[action_id].price);
         rawbot.modifyBalance(address(this), actions[action_id].price);
         action_history[action_id].push(ActionHistory(action_history[action_id][action_history[action_id].length - 1].user, action_id, now, true, false, true));
+        bytes32 query_id = oraclize_query(1 * 86400, "URL", "");
+        query_ids[query_id] = action_id;
+
         return true;
         emit ActionEnable(
             action_id,
@@ -129,7 +130,8 @@ contract Device is Owned, usingOraclize {
             actions[action_id].available == true
             && action_history[action_id][action_history[action_id].length - 1].enabled == true
         );
-        action_history[action_id].push(ActionHistory(msg.sender, action_id, now, false, false, true));
+
+        action_history[action_id][action_history[action_id].length - 1].enabled = false;
         emit ActionDisable(action_id, actions[action_id].name, actions[action_id].price, actions[action_id].duration, actions[action_id].recurring, actions[action_id].refundable, true, true);
         return true;
     }
@@ -138,25 +140,25 @@ contract Device is Owned, usingOraclize {
         require(
             actions[action_id].available == true
             && rawbot.getBalance(msg.sender) >= actions[action_id].price
-        //            && oraclize_getPrice("URL") < address(this).balance
+            && oraclize_getPrice("URL") < address(this).balance
         );
 
-        if (action_history[action_id].length == 0) {
+        if (action_history[action_id].length == 0 || action_history[action_id][action_history[action_id].length - 1].enabled == false) {
             bytes32 query_id;
-            //            if (actions[action_id].recurring == true) {
-            //                query_id = oraclize_query(actions[action_id].duration * 86400, "URL", "");
-            //                query_ids[query_id] = action_id;
-            //                query_address[query_id] = msg.sender;
-            //            } else {
-            //                query_id = oraclize_query(actions[action_id].duration, "URL", "");
-            //                query_ids[query_id] = action_id;
-            //                query_address[query_id] = msg.sender;
-            //            }
+            if (actions[action_id].recurring == true) {
+                query_id = oraclize_query(actions[action_id].duration * 86400, "URL", "");
+                query_ids[query_id] = action_id;
+            } else {
+                query_id = oraclize_query(actions[action_id].duration, "URL", "");
+                query_ids[query_id] = action_id;
+            }
 
             rawbot.modifyBalance(msg.sender, - actions[action_id].price);
             rawbot.modifyBalance(address(this), actions[action_id].price);
             action_history[action_id].push(ActionHistory(msg.sender, action_id, now, true, false, true));
-            emit ActionEnable(action_id,
+            return true;
+            emit ActionEnable(
+                action_id,
                 actions[action_id].name,
                 actions[action_id].price,
                 actions[action_id].duration,
@@ -165,45 +167,6 @@ contract Device is Owned, usingOraclize {
                 true,
                 true
             );
-            return true;
-        } else {
-            if (action_history[action_id][action_history[action_id].length - 1].enabled == false) {
-                bytes32 query_id2;
-                //                if (actions[action_id].recurring == true) {
-                //                    query_id2 = oraclize_query(actions[action_id].duration * 86400, "URL", "");
-                //                    query_ids[query_id2] = action_id;
-                //                } else {
-                //                    query_id2 = oraclize_query(actions[action_id].duration, "URL", "");
-                //                    query_ids[query_id2] = action_id;
-                //                }
-
-                rawbot.modifyBalance(msg.sender, - actions[action_id].price);
-                rawbot.modifyBalance(address(this), actions[action_id].price);
-                action_history[action_id].push(ActionHistory(msg.sender, action_id, now, true, false, true));
-                emit ActionEnable(
-                    action_id,
-                    actions[action_id].name,
-                    actions[action_id].price,
-                    actions[action_id].duration,
-                    actions[action_id].recurring,
-                    actions[action_id].refundable,
-                    true,
-                    true
-                );
-                return true;
-            } else {
-                emit ActionEnable(
-                    action_id,
-                    actions[action_id].name,
-                    actions[action_id].price,
-                    actions[action_id].duration,
-                    actions[action_id].recurring,
-                    actions[action_id].refundable,
-                    false,
-                    true
-                );
-                return false;
-            }
         }
     }
 
