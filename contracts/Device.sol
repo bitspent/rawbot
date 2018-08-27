@@ -71,6 +71,14 @@ contract Device is Owned, usingOraclize {
         emit AddIPFSHash(hash_index, _hash);
     }
 
+    function withdraw(uint256 value) public payable returns (bool success) {
+        require(device_owner == msg.sender);
+        require(rawbot.getBalance(address(this)) >= value * 1e18);
+        rawbot.modifyBalance(address(this), - value);
+        rawbot.modifyBalance(device_owner, value);
+        return true;
+    }
+
     //"Open", 50, 0, true, false
     function addAction(string action_name, uint256 action_price, uint256 action_duration, bool recurring, bool refundable) public payable returns (bool){
         require(device_owner == msg.sender);
@@ -88,33 +96,32 @@ contract Device is Owned, usingOraclize {
     }
 
     function _enableAction(uint256 action_id) private returns (bool success) {
-        //        require(
-        //            actions[action_id].available == true
-        //            && actions[action_id].recurring == true
-        //            && actions[action_id].price <= rawbot.getBalance(action_history[action_id][action_history[action_id].length - 1].user)
+        require(
+            actions[action_id].available == true
+            && actions[action_id].recurring == true
+            && actions[action_id].price <= rawbot.getBalance(action_history[action_id][action_history[action_id].length - 1].user)
         //            && oraclize_getPrice("URL") < address(this).balance
-        //        );
+        );
 
-        bytes32 query_id = oraclize_query(5, "URL", "");
+        //        bytes32 query_id = oraclize_query(5, "URL", "");
         //        bytes32 query_id = oraclize_query(actions[action_id].duration * 86400, "URL", "");
-        query_ids[query_id] = action_id;
+        //        query_ids[query_id] = action_id;
 
 
-        //        rawbot.modifyBalance(action_history[action_id][action_history[action_id].length - 1].user, - actions[action_id].price);
-        //        rawbot.modifyBalance(device_owner, actions[action_id].price);
-        //        action_history[action_id].push(ActionHistory(action_history[action_id][action_history[action_id].length - 1].user, action_id, now, true, false, true));
-        //
-        //        emit ActionEnable(
-        //            action_id,
-        //            actions[action_id].name,
-        //            actions[action_id].price,
-        //            actions[action_id].duration,
-        //            actions[action_id].recurring,
-        //            actions[action_id].refundable,
-        //            true
-        //        );
-
+        rawbot.modifyBalance(action_history[action_id][action_history[action_id].length - 1].user, - actions[action_id].price);
+        rawbot.modifyBalance(address(this), actions[action_id].price);
+        action_history[action_id].push(ActionHistory(action_history[action_id][action_history[action_id].length - 1].user, action_id, now, true, false, true));
         return true;
+        emit ActionEnable(
+            action_id,
+            actions[action_id].name,
+            actions[action_id].price,
+            actions[action_id].duration,
+            actions[action_id].recurring,
+            actions[action_id].refundable,
+            true,
+            true
+        );
     }
 
     function _disableAction(uint256 action_id) private returns (bool success){
@@ -147,7 +154,7 @@ contract Device is Owned, usingOraclize {
             //            }
 
             rawbot.modifyBalance(msg.sender, - actions[action_id].price);
-            rawbot.modifyBalance(device_owner, actions[action_id].price);
+            rawbot.modifyBalance(address(this), actions[action_id].price);
             action_history[action_id].push(ActionHistory(msg.sender, action_id, now, true, false, true));
             emit ActionEnable(action_id,
                 actions[action_id].name,
@@ -171,7 +178,7 @@ contract Device is Owned, usingOraclize {
                 //                }
 
                 rawbot.modifyBalance(msg.sender, - actions[action_id].price);
-                rawbot.modifyBalance(device_owner, actions[action_id].price);
+                rawbot.modifyBalance(address(this), actions[action_id].price);
                 action_history[action_id].push(ActionHistory(msg.sender, action_id, now, true, false, true));
                 emit ActionEnable(
                     action_id,
@@ -233,16 +240,20 @@ contract Device is Owned, usingOraclize {
             && action_history[action_id][_action_history_id].available == true
             && action_history[action_id][_action_history_id].id == action_id
             && action_history[action_id][_action_history_id].refunded == false
+            && rawbot.getBalance(address(this)) >= actions[action_id].price
         );
         rawbot.modifyBalance(msg.sender, - actions[action_id].price);
         rawbot.modifyBalance(action_history[action_id][_action_history_id].user, actions[action_id].price);
+
+        action_history[action_id][_action_history_id].enabled = false;
+        action_history[action_id][_action_history_id].refunded = true;
+        return true;
         emit Refund(
             action_id,
             _action_history_id,
             actions[action_id].price,
             now
         );
-        return true;
     }
 
     //0, 0
@@ -251,18 +262,26 @@ contract Device is Owned, usingOraclize {
             actions[action_id].available == true
             && actions[action_id].refundable == true
             && action_history[action_id][_action_history_id].available == true
-            && action_history[action_id][_action_history_id].user == msg.sender
-            && action_history[action_id][_action_history_id].id == action_id
+            && action_history[action_id][_action_history_id].enabled == true
             && action_history[action_id][_action_history_id].refunded == false
-            && now - (action_history[action_id][_action_history_id].time + actions[action_id].duration) < 0
+            && action_history[action_id][_action_history_id].id == action_id
+            && action_history[action_id][_action_history_id].user == msg.sender
+            && rawbot.getBalance(address(this)) >= actions[action_id].price
+            && (action_history[action_id][_action_history_id].time + actions[action_id].duration) - now > 0
         );
+
+        rawbot.modifyBalance(msg.sender, + actions[action_id].price);
+        rawbot.modifyBalance(address(this), - actions[action_id].price);
+
+        action_history[action_id][_action_history_id].enabled = false;
+        action_history[action_id][_action_history_id].refunded == true;
+        return true;
         emit RefundAutomatic(
             action_id,
             _action_history_id,
             actions[action_id].price,
             now
         );
-        return true;
     }
 
     function __callback(bytes32 myid, string result) {
@@ -271,7 +290,7 @@ contract Device is Owned, usingOraclize {
         address user = query_address[myid];
         if (actions[id].recurring == false) {
             RECURRING_PAYMENT_STEP = actions[id].price;
-            // _disableAction(id);
+            _disableAction(id);
         } else {
             RECURRING_PAYMENT_STEP = actions[id].price;
             _enableAction(id);

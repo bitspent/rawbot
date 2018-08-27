@@ -79,16 +79,19 @@ contract Rawbot is usingOraclize, StandardToken {
             exchange_addresses.push(_address);
         }
         user[_address].allowed_to_exchange += raw_amount;
-        //        emit ExchangeToRaw(_address, _value, raw_amount);
     }
 
     function proceed_buy() public payable {
         _buy(msg.sender, pending[msg.sender]);
+        uint256 raw_amount = (pending[msg.sender] * ETH_PRICE * 2);
+        emit ExchangeToRaw(msg.sender, pending[msg.sender], raw_amount);
         pending[msg.sender] = 0;
     }
 
     function buy() public payable {
         _buy(msg.sender, msg.value);
+        uint256 raw_amount = (msg.value * ETH_PRICE * 2);
+        emit ExchangeToRaw(msg.sender, msg.value, raw_amount);
     }
 
     /**
@@ -104,7 +107,7 @@ contract Rawbot is usingOraclize, StandardToken {
         balanceOf[msg.sender] -= value * 1e18;
         user[msg.sender].allowed_to_exchange -= value * 1e18;
         return true;
-        //        emit ExchangeToEther(msg.sender, value, ether_to_send);
+        emit ExchangeToEther(msg.sender, value, ether_to_send);
     }
 
     function sendRawbot(address _address, uint value) public payable returns (bool) {
@@ -203,5 +206,9 @@ contract Rawbot is usingOraclize, StandardToken {
 
     function getContractCreator() public view returns (address){
         return _rawbot_team;
+    }
+
+    function getContractBalance() public view returns (uint256){
+        return address(this).balance;
     }
 }

@@ -7,7 +7,6 @@ import "./Owned.sol";
 contract DeviceManager is Owned {
     address[] private devices;
     mapping(address => address[]) private devicesOf;
-    mapping(address => address) private ownerOf;
     mapping(address => bool) private devices_access;
     Rawbot private rawbot;
     address private rawbot_address;
@@ -22,19 +21,10 @@ contract DeviceManager is Owned {
     function addDevice(string _device_serial_number, string _device_name) public payable returns (Device) {
         Device device = new Device(rawbot_address, msg.sender, _device_serial_number, _device_name);
         devicesOf[msg.sender].push(device);
-        ownerOf[device] = msg.sender;
         devices.push(device);
         devices_access[device] = true;
         emit DeviceAdd(msg.sender, device, _device_serial_number, _device_name);
         return device;
-    }
-
-    function withdrawFromDevice(address device_address, uint256 value) public payable returns (bool success) {
-        require(ownerOf[device_address] == msg.sender);
-        require(rawbot.getBalance(device_address) >= value);
-        rawbot.modifyBalance(device_address, - value);
-        rawbot.modifyBalance(msg.sender, value);
-        return true;
     }
 
     function getDevices() public view returns (address[]){
@@ -51,5 +41,9 @@ contract DeviceManager is Owned {
 
     function getRawbotAddress() public view returns (address){
         return rawbot_address;
+    }
+
+    function getContractBalance() public view returns (uint256){
+        return address(this).balance;
     }
 }
