@@ -1,7 +1,7 @@
 var Rawbot = artifacts.require("Rawbot");
 var DeviceManager = artifacts.require("DeviceManager");
 var Device = artifacts.require("Device");
-let test_ethereum = true;
+let test_ethereum = false;
 
 contract('Rawbot', function (accounts) {
     let device_address;
@@ -193,6 +193,16 @@ contract('Rawbot', function (accounts) {
         assert.equal(typeof instance.address !== "undefined", true, "Failed to deploy device 1");
     });
 
+    // it("should send 1 eth to device 1", async () => {
+    //     let instance = await Device.at(device_address);
+    //     try {
+    //         let tx = await instance.sendTransaction({to: device_address, from: accounts[0], value: 1e18});
+    //         assert.equal(tx !== null, true, "Failed to send 1 eth to device 1");
+    //     } catch (e) {
+    //         assert.equal(false, true, "Failed to send 1 eth to device 1");
+    //     }
+    // });
+
     it("should send 1 ethereum to device 1", async () => {
         let instance = await Device.at(device_address);
         let tx = await instance.sendTransaction({to: device_address, from: accounts[0], value: 1e18});
@@ -231,7 +241,10 @@ contract('Rawbot', function (accounts) {
 
     it("should add action 3 on device 1", async () => {
         let instance = await Device.at(device_address);
-        let tx = await instance.addAction("Electricity", 250, 86400, true, true, {to: device_address, from: accounts[0]});
+        let tx = await instance.addAction("Electricity", 250, 86400, true, true, {
+            to: device_address,
+            from: accounts[0]
+        });
         assert.equal(typeof tx.tx !== "undefined", true, "Failed to add action 3 on device 1");
     });
 
