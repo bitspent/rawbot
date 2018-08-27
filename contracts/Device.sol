@@ -144,8 +144,8 @@ contract Device is Owned, usingOraclize {
         if (action_history[action_id].length == 0) {
             bytes32 query_id;
             //            if (actions[action_id].recurring == true) {
-            //                query_id = oraclize_query(actions[action_id].duration * 86400, "URL", "");
-            //                query_ids[query_id] = action_id;
+            //                            query_id = oraclize_query(actions[action_id].duration * 86400, "URL", "");
+            //                            query_ids[query_id] = action_id;
             //                query_address[query_id] = msg.sender;
             //            } else {
             //                query_id = oraclize_query(actions[action_id].duration, "URL", "");
