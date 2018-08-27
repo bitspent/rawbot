@@ -235,25 +235,25 @@ contract('Rawbot', function (accounts) {
     });
 
     if (test_ethereum) {
-        it("should fetch ethereum price", function () {
-            return Rawbot.deployed().then(function (instance) {
-                return instance.fetchEthereumPrice(0);
-            }).then(function (tx) {
-                let bool = tx.tx !== null;
-                assert.equal(bool, true, "Failed to fetch Ethereum price");
-            });
+        it("should fetch ethereum price", async () => {
+            let instance = await Rawbot.deployed();
+            let tx = instance.fetchEthereumPrice(0);
+            assert.equal(tx.tx !== null, true, "Failed to fetch Ethereum price");
         });
 
-        it("should display ethereum price correctly", function (done) {
-            setTimeout(function () {
-                return Rawbot.deployed().then(function (instance) {
-                    return instance.getEthereumPrice();
-                }).then(function (price) {
-                    assert.equal(price > 0, true, "Failed to display ethereum price correctly");
-                    done();
-                });
-            }, 15000);
+        it("should display ethereum price correctly", async () => {
+            let instance = await Rawbot.deployed();
+            let price = await instance.getEthereumPrice();
+            await waitSeconds(15);
+            assert.equal(price > 0, true, "Failed to display ethereum price correctly");
         });
     }
-})
-;
+});
+
+function waitSeconds(seconds) {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            resolve();
+        }, seconds * 1000);
+    });
+}
