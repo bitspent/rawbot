@@ -1,159 +1,166 @@
 var Rawbot = artifacts.require("Rawbot");
 var DeviceManager = artifacts.require("DeviceManager");
 var Device = artifacts.require("Device");
-let test_ethereum = true;
+let test_ethereum = false;
 
 contract('Rawbot', function (accounts) {
     let device_address;
 
-    it("should have matching contract creator", function () {
-        return Rawbot.deployed().then(function (instance) {
-            return instance.getContractCreator.call();
-        }).then(function (address) {
-            assert.equal(address, accounts[0], "Different contract creator address");
-        });
-    });
-    it("should have 4000000 rawbot coin in rawbot's team address", function () {
-        return Rawbot.deployed().then(function (instance) {
-            return instance.getBalance.call(accounts[0]);
-        }).then(function (balance) {
-            assert.equal(balance.valueOf(), 4000000 * 1e18, "4000000 are not available in " + accounts[0]);
-        });
+    it("should have matching contract creator", async () => {
+        let instance = await Rawbot.deployed();
+        let address = await instance.getContractCreator.call();
+        assert.equal(address, accounts[0], "Different contract creator address");
     });
 
-    it("should send 1 ethereum to contract", function () {
-        return Rawbot.deployed().then(function (instance) {
-            return instance.sendTransaction({to: instance.address, from: accounts[9], value: 1e18});
-        }).then(function (tx) {
-            assert.equal(tx !== null, true, "Failed to send ethereum to contract");
-        });
+    it("should have 4000000 rawbot coin in rawbot's team address", async () => {
+        let instance = await Rawbot.deployed();
+        let balance = await instance.getBalance.call(accounts[0]);
+        assert.equal(balance.valueOf(), 4000000 * 1e18, "4000000 are not available in " + accounts[0]);
     });
 
-    it("should receive 1000 rawbot coin on account 9", function () {
-        return Rawbot.deployed().then(function (instance) {
-            return instance.getBalance.call(accounts[9]);
-        }).then(function (balance) {
-            assert.equal(balance.valueOf() == 1000 * 1e18, true, "Failed to receive rawbot coins");
-        });
+    it("should send 1 ethereum to contract", async () => {
+        let instance = await Rawbot.deployed();
+        let tx = await instance.sendTransaction({to: instance.address, from: accounts[9], value: 1e18});
+        assert.equal(tx !== null, true, "Failed to send ethereum to contract");
     });
 
-    it("should withdraw 500 rawbot coin from account 9", function () {
-        return Rawbot.deployed().then(function (instance) {
-            return instance.withdraw(500, {to: instance.address, from: accounts[9]});
-        }).then(function (tx) {
-            assert.equal(tx !== null, true, "Failed to withdraw 500 rawbot coins");
-        });
+    it("should receive 1000 rawbot coin on account 9", async () => {
+        let instance = await Rawbot.deployed();
+        let balance = await instance.getBalance.call(accounts[9]);
+        assert.equal(balance.valueOf() == 1000 * 1e18, true, "Failed to receive rawbot coins");
     });
 
-    it("should send 500 rawbot coin to account 8 from account 9", function () {
-        return Rawbot.deployed().then(function (instance) {
-            return instance.sendRawbot(accounts[8], 500, {to: instance.address, from: accounts[9]});
-        }).then(function (tx) {
-            assert.equal(tx !== null, true, "Failed to send 500 rawbot coins");
-        });
+    it("should withdraw 500 rawbot coin from account 9", async () => {
+        let instance = await Rawbot.deployed();
+        let tx = await instance.withdraw(500, {to: instance.address, from: accounts[9]});
+        assert.equal(tx !== null, true, "Failed to withdraw 500 rawbot coins");
     });
 
-    it("should receive 500 rawbot coin on account 8 from account 9", function () {
-        return Rawbot.deployed().then(function (instance) {
-            return instance.getBalance.call(accounts[8]);
-        }).then(function (balance) {
-            assert.equal(balance.valueOf() == 500 * 1e18, true, "Failed to receive 500 rawbot coins");
-        });
+    it("should send 500 rawbot coin to account 8 from account 9", async () => {
+        let instance = await Rawbot.deployed();
+        let tx = await instance.sendRawbot(accounts[8], 500, {to: instance.address, from: accounts[9]});
+        assert.equal(tx !== null, true, "Failed to send 500 rawbot coins");
     });
 
-    it("should set device manager contract", function () {
-        let rawbot;
-        let device_manager;
-        return Rawbot.deployed().then(function (instance) {
-            rawbot = instance;
-        }).then(function () {
-            return DeviceManager.deployed().then(function (instance) {
-                device_manager = instance;
-            });
-        }).then(function () {
-            return rawbot.setContractDeviceManager(device_manager.address);
-        }).then(function (tx) {
-            assert.equal(tx.tx !== null, true, "Failed to set device manager contract address");
-        });
+    it("should fail to send 500 rawbot coin to account 8 from account 9", async () => {
+        let instance = await Rawbot.deployed();
+        try {
+            let tx = await instance.sendRawbot(accounts[8], 500, {to: instance.address, from: accounts[9]});
+        } catch (e) {
+            assert.equal(false, false, "Failed to send 500 rawbot coins");
+        }
     });
 
-    it("should add device 1", function () {
-        let device_manager;
-        return DeviceManager.deployed().then(function (instance) {
-            device_manager = instance;
-        }).then(function () {
-            return device_manager.addDevice("ABC", "Raspberry PI 3", {
-                to: device_manager.address,
-                from: accounts[0],
-                value: 1e18
-            });
-        }).then(function (tx) {
-            if (typeof tx.logs[0].args._contract !== "undefined") {
-                device_address = tx.logs[0].args._contract;
-            }
-            assert.equal(typeof tx.logs[0].args._contract !== "undefined", true, "Failed to add device 1");
-        });
+    it("should receive 500 rawbot coin on account 8 from account 9", async () => {
+        let instance = await Rawbot.deployed();
+        let balance = await instance.getBalance.call(accounts[8]);
+        assert.equal(balance.valueOf() == 500 * 1e18, true, "Failed to receive 500 rawbot coins");
     });
 
-    it("should deploy device 1", function () {
-        return Device.at(device_address).then(function (instance) {
-            assert.equal(typeof instance.address !== "undefined", true, "Failed to deploy device 1");
-        });
+    it("should set device manager contract", async () => {
+        let rawbot = await Rawbot.deployed();
+        let device_manager = await DeviceManager.deployed();
+        let tx = await rawbot.setContractDeviceManager(device_manager.address);
+        assert.equal(tx.tx !== null, true, "Failed to set device manager contract address");
     });
 
-    it("should send 1 ethereum to device contract", function () {
-        return Device.at(device_address).then(function (instance) {
-            return instance.sendTransaction({to: device_address, from: accounts[0], value: 1e18});
-        }).then(function (tx) {
-            assert.equal(tx.tx !== null, true, "Failed to send ethereum to contract");
+    it("should add device 1", async () => {
+        let device_manager = await DeviceManager.deployed();
+        let tx = await device_manager.addDevice("ABC", "Raspberry PI 3", {
+            to: device_manager.address,
+            from: accounts[0],
+            value: 1e18
         });
+        if (typeof tx.logs[0].args._contract !== "undefined") {
+            device_address = tx.logs[0].args._contract;
+        }
+        assert.equal(typeof tx.logs[0].args._contract !== "undefined", true, "Failed to add device 1");
     });
 
-    it("should receive 1 ethereum on device contract", function () {
-        return Device.at(device_address).then(function (instance) {
-            return instance.getDeviceBalance();
-        }).then(function (balance) {
-            assert.equal(balance.valueOf() == 1e18, true, "Failed to check device contract balance");
-        });
+    it("should deploy device 1", async () => {
+        let instance = await Device.at(device_address);
+        assert.equal(typeof instance.address !== "undefined", true, "Failed to deploy device 1");
     });
 
-    it("should check device 1 owner", function () {
-        return Device.at(device_address).then(function (instance) {
-            return instance.getDeviceOwner();
-        }).then(function (owner) {
-            assert.equal(owner === accounts[0], true, "Failed to check device 1 owner");
-        });
+    it("should send 1 ethereum to device 1", async () => {
+        let instance = await Device.at(device_address);
+        let tx = await instance.sendTransaction({to: device_address, from: accounts[0], value: 1e18});
+        assert.equal(tx.tx !== null, true, "Failed to send ethereum to contract");
     });
 
-    it("should add image hash on device 1", function () {
-        return Device.at(device_address).then(function (instance) {
-            instance.addImageHash("ABCDEFG", {to: device_address, from: accounts[0]})
-                .then(tx => {
-                    assert.equal(typeof tx.tx !== "undefined", true, "Failed to add image hash on device 1");
-                });
-        });
+    it("should receive 1 ethereum on device 1", async () => {
+        let instance = await Device.at(device_address);
+        let balance = await instance.getDeviceBalance();
+        assert.equal(balance.valueOf() == 1e18, true, "Failed to check device contract balance");
     });
 
-    it("should add action 1 on device 1", function () {
-        return Device.at(device_address).then(function (instance) {
-            instance.addAction("Open", 50, 0, true, false, {to: device_address, from: accounts[0]})
-                .then(tx => {
-                    assert.equal(typeof tx.tx !== "undefined", true, "Failed to add action 1 on device 1");
-                });
-        });
+    it("should check device 1 owner", async () => {
+        let instance = await Device.at(device_address);
+        let owner = await instance.getDeviceOwner();
+        assert.equal(owner === accounts[0], true, "Failed to check device 1 owner");
     });
 
-    it("should enable action 1 on device 1", function () {
-        return Device.at(device_address).then(function (instance) {
-            instance.enableAction(0, {to: device_address, from: accounts[0]})
-                .then(tx => {
-                    if (tx.logs[0].args._enable !== "undefined") {
-                        assert.equal(tx.logs[0].args._enable, true, "Failed to enable action 1 on device 1");
-                    } else {
-                        assert.equal(false, true, "Failed to enable action 1 on device 1");
-                    }
-                });
-        });
+    it("should add image hash on device 1", async () => {
+        let instance = await Device.at(device_address);
+        let tx = await instance.addImageHash("ABCDEFG", {to: device_address, from: accounts[0]});
+        assert.equal(typeof tx.tx !== "undefined", true, "Failed to add image hash on device 1");
+    });
+
+    it("should add action 1 on device 1", async () => {
+        let instance = await Device.at(device_address);
+        let tx = await instance.addAction("Open", 50, 0, true, false, {to: device_address, from: accounts[0]});
+        assert.equal(typeof tx.tx !== "undefined", true, "Failed to add action 1 on device 1");
+    });
+
+    it("should enable action 1 on device 1 using account 8", async () => {
+        let instance = await Device.at(device_address);
+        let tx = await instance.enableAction(0, {to: device_address, from: accounts[8]});
+        if (tx.logs[0].args._enable !== "undefined") {
+            assert.equal(tx.logs[0].args._enable, true, "Failed to enable action 1 on device 1");
+        } else {
+            assert.equal(false, true, "Failed to enable action 1 on device 1");
+        }
+    });
+
+    it("should have 4000050 rawbot coin on account 0", async () => {
+        let instance = await Rawbot.deployed();
+        let balance = await instance.getBalance.call(accounts[0]);
+        assert.equal(balance.valueOf(), 4000050 * 1e18, "4000050 are not available in " + accounts[0]);
+    });
+
+    it("should have 450 rawbot coin on account 8", async () => {
+        let instance = await Rawbot.deployed();
+        let balance = await instance.getBalance.call(accounts[8]);
+        assert.equal(balance.valueOf(), 450 * 1e18, "450 are not available in " + accounts[8]);
+    });
+
+    it("should fail to enable action 1 again on device 1", async () => {
+        let instance = await Device.at(device_address);
+        let tx = await instance.enableAction(0, {to: device_address, from: accounts[8]});
+        if (tx.logs[0].args._enable !== "undefined") {
+            assert.equal(tx.logs[0].args._enable, false, "Failed to enable action 1 again on device 1");
+        } else {
+            assert.equal(false, true, "Failed to enable action 1 again on device 1");
+        }
+    });
+
+    it("should disable action 1 on device 1", async () => {
+        let instance = await Device.at(device_address);
+        let tx = await instance.disableAction(0, {to: device_address, from: accounts[8]});
+        if (tx.logs[0].args._disable !== "undefined") {
+            assert.equal(tx.logs[0].args._disable, true, "Failed to disable action 1 on device 1");
+        } else {
+            assert.equal(false, true, "Failed to disable action 1 on device 1");
+        }
+    });
+
+    it("should fail to disable action 1 on device 1", async () => {
+        let instance = await Device.at(device_address);
+        try {
+            let tx = await instance.disableAction(0, {to: device_address, from: accounts[8]});
+        } catch (e) {
+            assert.equal(false, false, "Failed to disable action 1 on device 1");
+        }
     });
 
     if (test_ethereum) {
@@ -177,16 +184,5 @@ contract('Rawbot', function (accounts) {
             }, 15000);
         });
     }
-    // it("should enable action 1 again on device 1", function () {
-    //     return Device.at(device_address).then(function (instance) {
-    //         instance.enableAction(0, {to: device_address, from: accounts[0]})
-    //             .then(tx => {
-    //                 if (tx.logs[0].args._enable !== "undefined") {
-    //                     assert.equal(tx.logs[0].args._enable, true, "Failed to enable action 1 again on device 1");
-    //                 } else {
-    //                     assert.equal(true, true, "Failed to enable action 1 again on device 1");
-    //                 }
-    //             });
-    //     });
-    // });
-});
+})
+;

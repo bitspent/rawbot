@@ -32,7 +32,7 @@ contract Device is Owned, usingOraclize {
 
     event ActionAdd(uint _id, string _name, uint256 _price, uint256 _duration, bool _recurring, bool _refundable, bool _available);
     event ActionEnable(uint _id, string _name, uint256 _price, uint256 _duration, bool _recurring, bool _refundable, bool _enable, bool _available);
-    event ActionDisable(uint _id, string _name, uint256 _price, uint256 _duration, bool _recurring, bool _refundable, bool _disalbe, bool _available);
+    event ActionDisable(uint _id, string _name, uint256 _price, uint256 _duration, bool _recurring, bool _refundable, bool _disable, bool _available);
 
     string private device_name;
     string private device_serial_number;
