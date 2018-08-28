@@ -15,7 +15,7 @@ contract Rawbot is usingOraclize, StandardToken {
     event OraclizeLog(string _description, uint256 _time);
 
     uint256 private ETH_PRICE = 500;
-    uint256 private last_price_update = now;
+    uint256 private last_price_update = 0;
     uint private PAYMENT_STEP = 0;
     PRICE_CHECKING_STATUS private price_status;
 
@@ -44,7 +44,7 @@ contract Rawbot is usingOraclize, StandardToken {
         16,000,000 are circulating
     */
     constructor() StandardToken(20000000, "Rawbot Test 1", "TWR") public payable {
-        //        OAR = OraclizeAddrResolverI(0x6f485C8BF6fc43eA212E93BBF8ce046C7f1cb475);
+        OAR = OraclizeAddrResolverI(0x6f485C8BF6fc43eA212E93BBF8ce046C7f1cb475);
         _rawbot_team = msg.sender;
         price_status = PRICE_CHECKING_STATUS.NEEDED;
         balanceOf[_rawbot_team] = (totalSupply * 1) / 5;
@@ -56,41 +56,31 @@ contract Rawbot is usingOraclize, StandardToken {
         It adds them to transaction_exchanges mapping and executes all queued exchanges
         at the same time to avoid fetching Ethereum price at the same time
     */
+
+    mapping(bytes32 => address) queries_address;
+    mapping(bytes32 => uint256) queries_value;
+
     function() payable public {
+        if (user[msg.sender].available == false) {
+            exchange_addresses.push(msg.sender);
+        }
         if (ETH_PRICE == 0 || now - last_price_update > 300) {
             price_status = PRICE_CHECKING_STATUS.NEEDED;
-            fetchEthereumPrice(0);
-            PAYMENT_STEP = 1;
-            pending[msg.sender] += msg.value;
+            bytes32 my_id = oraclize_query(0, "URL", "json(https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD).USD");
+            queries_address[my_id] = msg.sender;
+            queries_value[my_id] = msg.value;
         } else {
             _buy(msg.sender, msg.value);
-            PAYMENT_STEP = 2;
         }
+        //        user[_address].exchange_history.push(ExchangeHistory(raw_amount, 0, _value, ETH_PRICE, now, true));
     }
 
     function _buy(address _address, uint256 _value) private {
         uint256 raw_amount = (_value * ETH_PRICE * 2);
         totalSupply -= raw_amount;
         balanceOf[_address] += raw_amount;
-        transfer(_address, raw_amount);
-        user[_address].exchange_history.push(ExchangeHistory(raw_amount, 0, _value, ETH_PRICE, now, true));
-        if (user[_address].available == false) {
-            exchange_addresses.push(_address);
-        }
         user[_address].allowed_to_exchange += raw_amount;
-    }
-
-    function proceed_buy() public payable {
-        _buy(msg.sender, pending[msg.sender]);
-        uint256 raw_amount = (pending[msg.sender] * ETH_PRICE * 2);
-        emit ExchangeToRaw(msg.sender, pending[msg.sender], raw_amount);
-        pending[msg.sender] = 0;
-    }
-
-    function buy() public payable {
-        _buy(msg.sender, msg.value);
-        uint256 raw_amount = (msg.value * ETH_PRICE * 2);
-        emit ExchangeToRaw(msg.sender, msg.value, raw_amount);
+        emit ExchangeToRaw(_address, _value, raw_amount);
     }
 
     /**
@@ -158,6 +148,9 @@ contract Rawbot is usingOraclize, StandardToken {
         emit OraclizeLog(result, now);
         last_price_update = now;
         price_status = PRICE_CHECKING_STATUS.FETCHED;
+        _buy(queries_address[myid], queries_value[myid]);
+        delete queries_address[myid];
+        delete queries_value[myid];
     }
     /**
         This method is used to set the DeviceManager's address

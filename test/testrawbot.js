@@ -1,11 +1,12 @@
 var Rawbot = artifacts.require("Rawbot");
 var DeviceManager = artifacts.require("DeviceManager");
 var Device = artifacts.require("Device");
-let test_ethereum = false;
+let test_ethereum = true;
 
 contract('Rawbot', function (accounts) {
     let device_address;
-
+    let balance_8;
+    let balance_9;
     it("should have 0.25 ethereum in rawbot contract", async () => {
         let instance = await Rawbot.deployed();
         let balance = await instance.getContractBalance();
@@ -38,16 +39,32 @@ contract('Rawbot', function (accounts) {
         assert.equal(balance.valueOf(), 4000000 * 1e18, "4000000 are not available in " + accounts[0]);
     });
 
-    it("should send 1 ethereum to contract using account 9", async () => {
+    it("should send 2 ethereum to contract using account 9", async () => {
         let instance = await Rawbot.deployed();
-        let tx = await instance.sendTransaction({to: instance.address, from: accounts[9], value: 1e18});
+        let tx = await instance.sendTransaction({to: instance.address, from: accounts[9], value: 2 * 1e18});
         assert.equal(tx !== null, true, "Failed to send ethereum to contract");
     });
 
-    it("should receive 1000 rawbot coin on account 9", async () => {
+    if (test_ethereum) {
+        it("should fetch ethereum price", async () => {
+            let instance = await Rawbot.deployed();
+            let tx = instance.fetchEthereumPrice(0);
+            assert.equal(tx.tx !== null, true, "Failed to fetch Ethereum price");
+        });
+
+        it("should display ethereum price correctly", async () => {
+            let instance = await Rawbot.deployed();
+            let price = await instance.getEthereumPrice();
+            await waitSeconds(15);
+            assert.equal(price > 0, true, "Failed to display ethereum price correctly");
+        });
+    }
+
+    it("should receive more than 1000 rawbot coin on account 9", async () => {
         let instance = await Rawbot.deployed();
         let balance = await instance.getBalance(accounts[9]);
-        assert.equal(balance.valueOf() == 1000 * 1e18, true, "Failed to receive rawbot coins");
+        balance_9 = balance;
+        assert.equal(balance.valueOf() > 1000 * 1e18, true, "Failed to receive rawbot coins");
     });
 
     it("should fail to send 99 ethereum to contract using account 9", async () => {
@@ -62,17 +79,19 @@ contract('Rawbot', function (accounts) {
     it("should withdraw 500 rawbot coin into ethereum from account 9", async () => {
         let instance = await Rawbot.deployed();
         let tx = await instance.withdraw(500, {to: instance.address, from: accounts[9]});
+        balance_9 -= 500;
         assert.equal(tx !== null, true, "Failed to withdraw 500 rawbot coins");
     });
 
-    it("should have 500 rawbot coin to exchange on account 9", async () => {
+    it("should have approx 500 rawbot coin to exchange on account 9", async () => {
         let instance = await Rawbot.deployed();
         let amount = await instance.getExchangeLeftOf(accounts[9]);
-        assert.equal(amount == 500 * 1e18, true, "Failed to get exchange left of 500 rawbot coins");
+        assert.equal(amount == balance_9 - (500 * 1e18), true, "Failed to get exchange left of 500 rawbot coins");
     });
 
     it("should send 500 rawbot coin to account 8 from account 9", async () => {
         let instance = await Rawbot.deployed();
+        balance_9 -= 500;
         let tx = await instance.sendRawbot(accounts[8], 500, {to: instance.address, from: accounts[9]});
         assert.equal(tx !== null, true, "Failed to send 500 rawbot coins");
     });
@@ -86,7 +105,7 @@ contract('Rawbot', function (accounts) {
     it("should have 0 rawbot coin on account 9", async () => {
         let instance = await Rawbot.deployed();
         let balance = await instance.getBalance(accounts[9]);
-        assert.equal(balance.valueOf() == 0, true, "Failed to check balance on account 9");
+        assert.equal(balance.valueOf() == balance_9 - (1000 * 1e18), true, "Failed to check balance on account 9");
     });
 
     it("should fail to send 500 rawbot coin to account 8 from account 9", async () => {
@@ -192,16 +211,6 @@ contract('Rawbot', function (accounts) {
         let instance = await Device.at(device_address);
         assert.equal(typeof instance.address !== "undefined", true, "Failed to deploy device 1");
     });
-
-    // it("should send 1 eth to device 1", async () => {
-    //     let instance = await Device.at(device_address);
-    //     try {
-    //         let tx = await instance.sendTransaction({to: device_address, from: accounts[0], value: 1e18});
-    //         assert.equal(tx !== null, true, "Failed to send 1 eth to device 1");
-    //     } catch (e) {
-    //         assert.equal(false, true, "Failed to send 1 eth to device 1");
-    //     }
-    // });
 
     it("should send 1 ethereum to device 1", async () => {
         let instance = await Device.at(device_address);
@@ -410,21 +419,6 @@ contract('Rawbot', function (accounts) {
         let balance = await instance.getBalance(accounts[8]);
         assert.equal(balance.valueOf(), 450 * 1e18, "450 are not available in " + accounts[8]);
     });
-
-    if (test_ethereum) {
-        it("should fetch ethereum price", async () => {
-            let instance = await Rawbot.deployed();
-            let tx = instance.fetchEthereumPrice(0);
-            assert.equal(tx.tx !== null, true, "Failed to fetch Ethereum price");
-        });
-
-        it("should display ethereum price correctly", async () => {
-            let instance = await Rawbot.deployed();
-            let price = await instance.getEthereumPrice();
-            await waitSeconds(15);
-            assert.equal(price > 0, true, "Failed to display ethereum price correctly");
-        });
-    }
 });
 
 function waitSeconds(seconds) {
