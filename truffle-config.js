@@ -32,7 +32,7 @@ module.exports = {
         ropsten: {
             provider: new HDWalletProvider("naive ride judge carry summer fury cruel negative sugar female system hunt", "https://ropsten.infura.io/S8sXDq6KGrjLO4ckZK2X"),
             network_id: 3,
-            gas: 4705388,
+            gas: 8500000,
             gasPrice: 10000000000
         }
     }

@@ -18,6 +18,7 @@ contract DeviceManager is Owned {
         rawbot = Rawbot(_rawbot_address);
     }
 
+    //"ABC", "Raspberry PI 3"
     function addDevice(string _device_serial_number, string _device_name) public payable returns (Device) {
         Device device = new Device(rawbot_address, msg.sender, _device_serial_number, _device_name);
         devicesOf[msg.sender].push(device);
@@ -35,7 +36,7 @@ contract DeviceManager is Owned {
         return devicesOf[_address];
     }
 
-    function hasAccess(address _address) public view returns (bool){
+    function hasAccess(address _address) external view returns (bool){
         return devices_access[_address];
     }
 

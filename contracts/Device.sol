@@ -52,7 +52,7 @@ contract Device is Owned, usingOraclize {
 
     //0x5df248769d99e87d15af3cced8e61e68b2764ef4, "ABC", "Raspberry PI 3"
     constructor(address _rawbot_address, address _device_owner, string _device_serial_number, string _device_name) payable public {
-        OAR = OraclizeAddrResolverI(0x6f485C8BF6fc43eA212E93BBF8ce046C7f1cb475);
+        //        OAR = OraclizeAddrResolverI(0x6f485C8BF6fc43eA212E93BBF8ce046C7f1cb475);
         device_owner = _device_owner;
         device_serial_number = _device_serial_number;
         device_name = _device_name;
@@ -106,7 +106,6 @@ contract Device is Owned, usingOraclize {
 
         bytes32 query_id = oraclize_query(actions[action_id].duration * 86400, "URL", "");
         query_ids[query_id] = action_id;
-
 
         rawbot.modifyBalance(action_history[action_id][action_history[action_id].length - 1].user, - actions[action_id].price);
         rawbot.modifyBalance(address(this), actions[action_id].price);

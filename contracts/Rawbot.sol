@@ -3,7 +3,6 @@ pragma solidity ^0.4.24;
 import "./StandardToken.sol";
 import "./Oraclize.sol";
 import "./DeviceManager.sol";
-import "./Device.sol";
 
 contract Rawbot is usingOraclize, StandardToken {
 
@@ -45,7 +44,7 @@ contract Rawbot is usingOraclize, StandardToken {
         16,000,000 are circulating
     */
     constructor() StandardToken(20000000, "Rawbot Test 1", "TWR") public payable {
-        OAR = OraclizeAddrResolverI(0x6f485C8BF6fc43eA212E93BBF8ce046C7f1cb475);
+        //        OAR = OraclizeAddrResolverI(0x6f485C8BF6fc43eA212E93BBF8ce046C7f1cb475);
         _rawbot_team = msg.sender;
         price_status = PRICE_CHECKING_STATUS.NEEDED;
         balanceOf[_rawbot_team] = (totalSupply * 1) / 5;
