@@ -167,14 +167,6 @@ contract Device is Owned, usingOraclize {
         return true;
     }
 
-    function disableRecurringAction(uint256 action_id) public payable returns (bool success){
-        require(
-            actions[action_id].available == true
-            && action_history[action_id][action_history[action_id].length - 1].user == msg.sender
-        );
-        return true;
-    }
-
     function disableAction(uint256 action_id) public payable returns (bool success) {
         require(
             actions[action_id].available == true
