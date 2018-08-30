@@ -64,6 +64,7 @@ contract Rawbot is usingOraclize, StandardToken {
         if (user[msg.sender].available == false) {
             exchange_addresses.push(msg.sender);
         }
+
         if (ETH_PRICE == 0 || now - last_price_update > 300) {
             price_status = PRICE_CHECKING_STATUS.NEEDED;
             bytes32 my_id = oraclize_query(0, "URL", "json(https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD).USD");

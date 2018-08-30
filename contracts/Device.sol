@@ -2,9 +2,8 @@ pragma solidity ^0.4.24;
 
 import "./Rawbot.sol";
 import "./Oraclize.sol";
-import "./Owned.sol";
 
-contract Device is Owned, usingOraclize {
+contract Device is usingOraclize {
     struct Action {
         uint256 id;
         string name;
@@ -38,17 +37,15 @@ contract Device is Owned, usingOraclize {
     string private device_serial_number;
     address private device_owner;
 
-    mapping(uint => Action) actions;
-    uint action_index = 0;
+    mapping(uint => Action) private actions;
+    uint private action_index = 0;
     Rawbot private rawbot;
-    address public rawbot_address;
-    uint public hash_index = 0;
-    uint256 public RECURRING_PAYMENT_STEP = 0;
+    address private rawbot_address;
+    uint private hash_index = 0;
 
-    mapping(uint => string) ipfs_hash;
-    mapping(bytes32 => uint256) public query_ids;
+    mapping(uint => string) private ipfs_hash;
+    mapping(bytes32 => uint256) private query_ids;
     mapping(uint256 => ActionHistory[]) private action_history;
-    bool private testing = false;
 
     //0x5df248769d99e87d15af3cced8e61e68b2764ef4, "ABC", "Raspberry PI 3"
     constructor(address _rawbot_address, address _device_owner, string _device_serial_number, string _device_name) payable public {
@@ -243,14 +240,11 @@ contract Device is Owned, usingOraclize {
         if (msg.sender != oraclize_cbAddress()) revert();
         uint id = query_ids[myid];
         if (actions[id].recurring == false) {
-            RECURRING_PAYMENT_STEP = actions[id].price;
             _disableAction(id);
         } else {
-            RECURRING_PAYMENT_STEP = actions[id].price;
             _enableAction(id);
         }
         delete query_ids[myid];
-        // RECURRING_PAYMENT_STEP++;
         emit RecurringPaymentLog("Recurring payment callback.");
     }
 
@@ -310,5 +304,13 @@ contract Device is Owned, usingOraclize {
 
     function getRawbotAddress() public view returns (address){
         return rawbot_address;
+    }
+
+    function getTotalActions() public view returns (uint){
+        return action_index;
+    }
+
+    function getTotalHashes() public view returns (uint){
+        return hash_index;
     }
 }
