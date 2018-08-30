@@ -106,6 +106,7 @@ contract Device is usingOraclize {
 
         rawbot.modifyBalance(action_history[action_id][action_history[action_id].length - 1].user, - actions[action_id].price);
         rawbot.modifyBalance(address(this), actions[action_id].price);
+
         action_history[action_id].push(ActionHistory(action_history[action_id][action_history[action_id].length - 1].user, action_id, now, true, false, true));
         return true;
         emit ActionEnable(
@@ -194,9 +195,9 @@ contract Device is usingOraclize {
             && action_history[action_id][_action_history_id].refunded == false
             && rawbot.getBalance(address(this)) >= actions[action_id].price
         );
-        rawbot.modifyBalance(msg.sender, - actions[action_id].price);
-        rawbot.modifyBalance(action_history[action_id][_action_history_id].user, actions[action_id].price);
 
+        rawbot.modifyBalance(address(this), - actions[action_id].price);
+        rawbot.modifyBalance(action_history[action_id][_action_history_id].user, actions[action_id].price);
         action_history[action_id][_action_history_id].enabled = false;
         action_history[action_id][_action_history_id].refunded = true;
         return true;
@@ -222,8 +223,8 @@ contract Device is usingOraclize {
             && (action_history[action_id][_action_history_id].time + actions[action_id].duration) - now > 0
         );
 
-        rawbot.modifyBalance(msg.sender, + actions[action_id].price);
         rawbot.modifyBalance(address(this), - actions[action_id].price);
+        rawbot.modifyBalance(msg.sender, actions[action_id].price);
 
         action_history[action_id][_action_history_id].enabled = false;
         action_history[action_id][_action_history_id].refunded == true;
@@ -248,7 +249,7 @@ contract Device is usingOraclize {
         emit RecurringPaymentLog("Recurring payment callback.");
     }
 
-    function getAction(uint256 action_id) public view returns (uint256, string, uint256, uint256, bool, bool, bool) {
+    function getDeviceAction(uint256 action_id) public view returns (uint256, string, uint256, uint256, bool, bool, bool) {
         return (
         actions[action_id].id,
         actions[action_id].name,
@@ -256,11 +257,18 @@ contract Device is usingOraclize {
         actions[action_id].duration,
         actions[action_id].recurring,
         actions[action_id].refundable,
-        actions[action_id].available
-        );
+        actions[action_id].available);
     }
 
-    function getActionHistory(uint256 action_id, uint256 action_history_index) public view returns (address, uint256, uint256, bool, bool, bool) {
+    function isEnabled(uint256 action_id) public view returns (bool){
+        if (action_history[action_id].length > 0) {
+            return action_history[action_id][action_history[action_id].length - 1].enabled;
+        } else {
+            return false;
+        }
+    }
+
+    function getDeviceActionHistory(uint256 action_id, uint256 action_history_index) public view returns (address, uint256, uint256, bool, bool, bool) {
         return (
         action_history[action_id][action_history_index].user,
         action_history[action_id][action_history_index].id,
@@ -271,7 +279,7 @@ contract Device is usingOraclize {
         );
     }
 
-    function getLastActionHistory(uint256 action_id) public view returns (address, uint256, uint256, bool, bool, bool) {
+    function getDeviceLastActionHistory(uint256 action_id) public view returns (address, uint256, uint256, bool, bool, bool) {
         return (
         action_history[action_id][action_history[action_id].length - 1].user,
         action_history[action_id][action_history[action_id].length - 1].id,
@@ -312,5 +320,9 @@ contract Device is usingOraclize {
 
     function getTotalHashes() public view returns (uint){
         return hash_index;
+    }
+
+    function getBalance(address _address) public view returns (uint256){
+        return rawbot.getBalance(_address);
     }
 }
