@@ -110,8 +110,8 @@ contract Rawbot is usingOraclize, StandardToken {
         It can only be used by created Merchant contract addresses
     */
     function modifyBalance(address _address, uint256 amount) external returns (bool) {
-        DeviceManager deviceManager = DeviceManager(ContractDeviceManagerAddress);
-        require(deviceManager.hasAccess(msg.sender) == true);
+        //        DeviceManager deviceManager = DeviceManager(ContractDeviceManagerAddress);
+        //        require(deviceManager.hasAccess(msg.sender) == true);
         require(balanceOf[_address] >= 0);
         balanceOf[_address] += (amount * 1e18);
         return true;
