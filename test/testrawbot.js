@@ -39,12 +39,6 @@ contract('Rawbot', function (accounts) {
         assert.equal(balance.valueOf(), 4000000 * 1e18, "4000000 are not available in " + accounts[0]);
     });
 
-    it("should send 2 ethereum to contract using account 9", async () => {
-        let instance = await Rawbot.deployed();
-        let tx = await instance.sendTransaction({to: instance.address, from: accounts[9], value: 2 * 1e18});
-        assert.equal(tx !== null, true, "Failed to send ethereum to contract");
-    });
-
     if (test_ethereum) {
         it("should fetch ethereum price", async () => {
             let instance = await Rawbot.deployed();
@@ -59,6 +53,12 @@ contract('Rawbot', function (accounts) {
             assert.equal(price > 0, true, "Failed to display ethereum price correctly");
         });
     }
+
+    it("should send 2 ethereum to contract using account 9", async () => {
+        let instance = await Rawbot.deployed();
+        let tx = await instance.sendTransaction({to: instance.address, from: accounts[9], value: 2 * 1e18});
+        assert.equal(tx !== null, true, "Failed to send ethereum to contract");
+    });
 
     it("should receive more than 1000 rawbot coin on account 9", async () => {
         let instance = await Rawbot.deployed();
@@ -257,6 +257,15 @@ contract('Rawbot', function (accounts) {
         assert.equal(typeof tx.tx !== "undefined", true, "Failed to add action 3 on device 1");
     });
 
+    it("should add action 4 on device 1", async () => {
+        let instance = await Device.at(device_address);
+        let tx = await instance.addAction("Potato", 50, 2, true, true, {
+            to: device_address,
+            from: accounts[0]
+        });
+        assert.equal(typeof tx.tx !== "undefined", true, "Failed to add action 4 on device 1");
+    });
+
     it("should enable action 1 on device 1 using account 8", async () => {
         let instance = await Device.at(device_address);
         let tx = await instance.enableAction(0, {to: device_address, from: accounts[8]});
@@ -265,6 +274,12 @@ contract('Rawbot', function (accounts) {
         } else {
             assert.equal(false, true, "Failed to enable action 1 on device 1");
         }
+    });
+
+    it("should have action 1 enabled state: true", async () => {
+        let instance = await Device.at(device_address);
+        let bool = await instance.isEnabled(0, {to: device_address, from: accounts[0]});
+        assert.equal(bool, true, "Action 1 enable state: false");
     });
 
     it("should have 50 rawbot coin on device 1", async () => {
@@ -418,6 +433,22 @@ contract('Rawbot', function (accounts) {
         let instance = await Rawbot.deployed();
         let balance = await instance.getBalance(accounts[8]);
         assert.equal(balance.valueOf(), 450 * 1e18, "450 are not available in " + accounts[8]);
+    });
+
+    it("should have action 1 enabled state: false", async () => {
+        let instance = await Device.at(device_address);
+        let bool = await instance.isEnabled(0, {to: device_address, from: accounts[0]});
+        assert.equal(bool, false, "Action 1 enable state: true");
+    });
+
+    it("should enable action 4 on device 1 using account 8", async () => {
+        let instance = await Device.at(device_address);
+        let tx = await instance.enableAction(3, {to: device_address, from: accounts[8]});
+        if (tx.logs[0].args._enable !== "undefined") {
+            assert.equal(tx.logs[0].args._enable, true, "Failed to enable action 4 on device 1");
+        } else {
+            assert.equal(false, true, "Failed to enable action 4 on device 1");
+        }
     });
 });
 

@@ -23,11 +23,11 @@ contract Device is usingOraclize {
         bool available;
     }
 
-    event AddIPFSHash(uint, string);
-    event RecurringPaymentLog(string);
+    event AddIPFSHash(uint _index, string _ash);
+    event RecurringPaymentLog(string _details);
 
-    event Refund(uint, uint, uint, uint);
-    event RefundAutomatic(uint, uint, uint, uint);
+    event Refund(uint256 _action_id, uint256 _action_history_id, uint256 _action_price, uint256 _time);
+    event RefundAutomatic(uint256 _action_id, uint256 _action_history_id, uint256 _action_price, uint256 _time);
 
     event ActionAdd(uint _id, string _name, uint256 _price, uint256 _duration, bool _recurring, bool _refundable, bool _available);
     event ActionEnable(uint _id, string _name, uint256 _price, uint256 _duration, bool _recurring, bool _refundable, bool _enable, bool _available);

@@ -14,8 +14,8 @@ contract StandardToken is Owned {
     event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
     event Burn(address indexed from, uint256 value);
     event FrozenFunds(address target, bool frozen);
-    event ExchangeToEther(address, uint256, uint256);
-    event ExchangeToRaw(address, uint256, uint256);
+    event ExchangeToEther(address _user, uint256 _input, uint256 _output);
+    event ExchangeToRaw(address _user, uint256 _input, uint256 _output);
 
     mapping(address => bool) public frozenAccount;
     mapping(address => uint256) public balanceOf;
